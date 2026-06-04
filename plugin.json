@@ -1,6 +1,6 @@
 {
   "name": "agy-swarms",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Local typed task-graph runner for deterministic agent workflow execution",
   "author": {
     "name": "Torachiyo Uesugi"
