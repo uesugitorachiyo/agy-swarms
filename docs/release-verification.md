@@ -123,6 +123,7 @@ The release health command runs:
 - `scripts/v19_guard_rejection_report_contract_probe.py`
 - `scripts/v20_guard_rejection_inspection_probe.py`
 - `scripts/v21_hybrid_review_routing_probe.py`
+- `scripts/plugin_smoke_probe.py`
 
 These checks are expected to leave `git status --short` clean.
 

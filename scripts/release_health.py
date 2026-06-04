@@ -122,6 +122,11 @@ PROBES = [
             "Verifies edge-backed graph semantics and Gemini-default optional CLI review routing"
         ),
     },
+    {
+        "name": "V22 Plugin Installation Smoke",
+        "command": [sys.executable, "scripts/plugin_smoke_probe.py"],
+        "desc": "Verifies agy plugin validation, installation, listing, and uninstallation",
+    },
 ]
 
 

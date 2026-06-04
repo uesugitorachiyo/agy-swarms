@@ -169,6 +169,15 @@ def test_release_health_includes_v21_hybrid_review_routing_probe():
     assert "scripts/v21_hybrid_review_routing_probe.py" in source
 
 
+def test_release_health_includes_plugin_smoke_probe():
+    source = (Path(__file__).resolve().parents[1] / "scripts" / "release_health.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "V22 Plugin Installation Smoke" in source
+    assert "scripts/plugin_smoke_probe.py" in source
+
+
 def test_release_health_reports_milestone_neutral_certification_label():
     source = (Path(__file__).resolve().parents[1] / "scripts" / "release_health.py").read_text(
         encoding="utf-8"

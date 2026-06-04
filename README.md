@@ -92,6 +92,23 @@ bundle before command execution proceeds.
 
 Provider API keys are not required for the deterministic local-runner path.
 
+## Antigravity Plugin
+
+The repository includes `plugin.json` and `skills/agy-swarms/SKILL.md` for
+Antigravity-compatible plugin installation.
+
+After cloning, link the local checkout for development:
+
+```bash
+agy plugin link .
+```
+
+Or install from GitHub:
+
+```bash
+agy plugin install github:uesugitorachiyo/agy-swarms
+```
+
 ## License
 
 `agy-swarms` is licensed under either of:
