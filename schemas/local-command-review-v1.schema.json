@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agy-swarms.local/schemas/local-command-review-v1.schema.json",
+  "title": "agy-swarms local command review evidence",
+  "type": "object",
+  "additionalProperties": {
+    "type": "object",
+    "required": ["executable", "argv_count", "redacted_argv", "argv_sha256"],
+    "additionalProperties": false,
+    "properties": {
+      "executable": {
+        "type": "string",
+        "minLength": 1
+      },
+      "argv_count": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "redacted_argv": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "string"
+        }
+      },
+      "argv_sha256": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    }
+  }
+}

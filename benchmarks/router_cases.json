@@ -1,0 +1,20 @@
+[
+  {
+    "id": "single_refactor",
+    "task": "Rename one helper and update direct callers in one module.",
+    "expected_complexity_route": "single",
+    "expected_model_tier": "flash_high"
+  },
+  {
+    "id": "breadth_parallel_docs",
+    "task": "Review four independent planning documents and summarize contradictions.",
+    "expected_complexity_route": "fanout(2-4)",
+    "expected_model_tier": "flash_high"
+  },
+  {
+    "id": "large_benchmark_suite",
+    "task": "Run a 12-task benchmark suite with independent workers and aggregate metrics.",
+    "expected_complexity_route": "fanout(10+)",
+    "expected_model_tier": "flash_high"
+  }
+]

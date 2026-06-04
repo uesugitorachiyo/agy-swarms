@@ -1,0 +1,32 @@
+{
+  "nodes": [
+    {
+      "id": "root",
+      "role": "test",
+      "objective": "emit deterministic root evidence before dependency failure",
+      "command": ["python", "-c", "print('fixture-dependency-skip:root')"]
+    },
+    {
+      "id": "lint",
+      "role": "verify",
+      "objective": "fail deterministically so dependent nodes are skipped",
+      "dependencies": ["root"],
+      "command": ["python", "-c", "import sys; print('fixture-dependency-skip:lint'); sys.exit(2)"]
+    },
+    {
+      "id": "docs",
+      "role": "verify",
+      "objective": "remain skipped because lint failed",
+      "dependencies": ["lint"],
+      "command": ["python", "-c", "print('fixture-dependency-skip:docs-should-not-run')"]
+    },
+    {
+      "id": "package",
+      "role": "verify",
+      "objective": "remain skipped because lint failed",
+      "dependencies": ["lint"],
+      "command": ["python", "-c", "print('fixture-dependency-skip:package-should-not-run')"]
+    }
+  ],
+  "edges": [["root", "lint"], ["lint", "docs"], ["lint", "package"]]
+}

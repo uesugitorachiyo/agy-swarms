@@ -1,0 +1,102 @@
+# agy-swarms
+
+`agy-swarms` is a local typed task-graph runner for agentic workflows.
+
+It gives you deterministic scheduling, budget accounting, policy gates,
+checkpointed evidence, saved reports, preflight review bundles, and resumable
+inspection for local graph execution.
+
+The project is designed for operators who want to run parallel agent-shaped
+workflows without making the runtime itself an opaque agent. Models and CLIs can
+sit behind adapters; graph validation, scheduling, command review, reporting,
+and replayable evidence stay in code.
+
+## What It Does
+
+- Loads task graphs from JSON.
+- Validates nodes, dependencies, budgets, and command surfaces before execution.
+- Runs deterministic local command nodes only when explicitly allowed.
+- Emits saved JSON reports for inspection and resume flows.
+- Produces command-review and review-bundle evidence before a guarded run.
+- Provides adapters for scripted execution and review routing experiments.
+
+## Install
+
+Use `uv` from a fresh checkout:
+
+```bash
+uv sync --extra dev
+```
+
+Run the test suite:
+
+```bash
+uv run pytest -q
+```
+
+Run the CLI:
+
+```bash
+uv run agy-swarms --help
+```
+
+## Quickstart
+
+Preflight a tracked local-runner graph without executing commands:
+
+```bash
+uv run agy-swarms preflight --graph tests/fixtures/local_runner/success-graph.json
+```
+
+Run the same graph and write a saved report:
+
+```bash
+uv run agy-swarms run \
+  --graph tests/fixtures/local_runner/success-graph.json \
+  --allow-local-commands \
+  --report /tmp/agy-swarms-success-report.json
+```
+
+Inspect the saved report:
+
+```bash
+uv run agy-swarms inspect --checkpoint /tmp/agy-swarms-success-report.json
+```
+
+Load the saved report through the resume path without rerunning local command
+nodes:
+
+```bash
+uv run agy-swarms resume --checkpoint /tmp/agy-swarms-success-report.json
+```
+
+## Release Checks
+
+The public CI path is intentionally local and deterministic:
+
+```bash
+uv run ruff check .
+uv run pytest -q
+```
+
+Additional release verification notes live in
+[docs/release-verification.md](docs/release-verification.md). Version policy
+notes live in [docs/versioning.md](docs/versioning.md).
+
+## Safety Model
+
+`agy-swarms` treats command execution as an explicit side effect. The graph
+preflight and review-bundle flows are read-only. Local command nodes require
+the `--allow-local-commands` flag, and guarded runs can require a saved review
+bundle before command execution proceeds.
+
+Provider API keys are not required for the deterministic local-runner path.
+
+## License
+
+`agy-swarms` is licensed under either of:
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
+- MIT License ([LICENSE-MIT](LICENSE-MIT))
+
+Choose whichever license fits your use case.

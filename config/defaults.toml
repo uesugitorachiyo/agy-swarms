@@ -1,0 +1,60 @@
+# agy-swarms default constants.
+# These are provisional Phase-0 pins. Measured values and GO/NO-GO outcomes live in phase0-results.md.
+
+[runtime]
+default_stateless_transport = "agy"
+default_agentic_transport = "agy"
+auth_default = "oauth"
+model_default = "gemini-3.5-flash"
+thinking_level_default = "high"
+
+[phase0_budget]
+usd_cap = 500.0
+billable_equivalent_token_cap = 50000000
+raise_only = true
+
+[phase0_gates]
+schema_adherence_samples = 20
+schema_adherence_floor = 0.95
+schema_p95_latency_s = 60
+xml_extraction_samples = 50
+xml_effective_parse_floor = 0.90
+xml_repair_attempts = 1
+calibration_prompts = 30
+calibration_p90_abs_error_floor = 0.15
+drift_alarm_fraction = 0.10
+quality_floor_n = 5
+quality_floor_k = 3
+quality_floor_delta = 0.90
+quality_floor_repeats = 3
+cost_latency_microtasks = 3
+cost_latency_projected_worker_cap = 4
+cost_latency_projected_cost_ratio_z = 1.5
+cost_latency_remeasure_attempts = 2
+soak_bootstrap_hours = 2
+soak_floor_hours = 24
+shared_oauth_degradation_floor = 0.20
+
+[phase2]
+c_max_billable_equivalent_tokens = 32000
+x_min_reduction = 1.0
+
+[phase3]
+planner_edge_jaccard_j = 0.70
+planner_seed_count = 5
+router_accuracy_floor = 1.0
+max_replans = 2
+
+[phase5]
+m1_runs_k = 5
+m1_ci_lower_bound = 0.95
+m2_billable_token_ratio = 0.60
+m3_wallclock_ratio = 0.50
+
+[measurement_environment]
+host_class = "macOS-26.3-arm64-arm-64bit-Mach-O"
+logical_cores = 10
+ram_gb = 16
+arch = "arm64"
+provider_region = "UNOBSERVED_AGY_OAUTH"
+network_profile = "local_uncontrolled"

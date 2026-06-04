@@ -1,0 +1,12 @@
+{
+  "baseline_type": "phase0_opus_proxy",
+  "billable_equivalent_tokens": 575,
+  "config_hash": "2aa35a015e88c044e152478c7d427b2e6b316e7c9401bdd142b793d25dfddbb4",
+  "estimation_method": "Phase-0 G0.8 cost-sanity proxy: mean over three representative microtasks using recorded Opus 4.8 input/output pricing and ADR-032 opaque token estimates.",
+  "pricing_source": "official_api_pricing_observed_2026-05-31",
+  "quality_score": 1.0,
+  "reference_task_sha": "eb1d156ff62312214e9e4b0b133fc4baeacfee0ea82c11c265ec0008d4cd3621",
+  "source_evidence": ".planning/spikes/g0.8-cost-latency-quality.json",
+  "single_opus_baseline_usd": 0.02119875,
+  "workflow_sha": "phase0-g0.8-opus-proxy-2aa35a015e88c044e152478c7d427b2e6b316e7c9401bdd142b793d25dfddbb4"
+}

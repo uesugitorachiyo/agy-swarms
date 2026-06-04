@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agy-swarms.local/schemas/local-runner-summary-v1.schema.json",
+  "title": "agy-swarms local runner summary v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "summary"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string"
+    },
+    "path": {
+      "type": "string"
+    },
+    "checkpoint": {
+      "type": "string"
+    },
+    "source_status": {
+      "type": "string"
+    },
+    "size_bytes": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "type": "string"
+    },
+    "states": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total_nodes",
+        "status_counts",
+        "failed_nodes",
+        "skipped_nodes",
+        "blocker_count",
+        "concern_count",
+        "changed_files_count"
+      ],
+      "properties": {
+        "total_nodes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "status_counts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "failed_nodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "skipped_nodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "blocker_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "concern_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "changed_files_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "guarded_report": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "has_review_bundle_guard",
+            "guarded_run",
+            "graph_sha256_match",
+            "review_complete",
+            "missing_command_review_count",
+            "mismatched_command_review_count",
+            "commands_executed"
+          ],
+          "properties": {
+            "has_review_bundle_guard": {
+              "type": "boolean",
+              "const": true
+            },
+            "guarded_run": {
+              "type": "boolean"
+            },
+            "graph_sha256_match": {
+              "type": "boolean"
+            },
+            "review_complete": {
+              "type": "boolean"
+            },
+            "missing_command_review_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "mismatched_command_review_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "commands_executed": {
+              "type": "boolean",
+              "const": false
+            }
+          }
+        }
+      }
+    }
+  }
+}

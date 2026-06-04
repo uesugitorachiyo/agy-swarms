@@ -1,0 +1,75 @@
+lockfile_version = 1
+
+[models.default]
+snapshot = "gemini-3.5-flash-05-2026"
+family = "Flash"
+thinking = "high"
+normative = true
+
+[models.escalate]
+snapshot = "gemini-3.1-pro-05-2026"
+family = "Pro"
+normative = true
+
+[prompt_hashes]
+swarm_system_prompt = "UNRECORDED"
+planner_prompt = "UNRECORDED"
+worker_prompt = "UNRECORDED"
+
+[benchmarks]
+reference_task_sha = "eb1d156ff62312214e9e4b0b133fc4baeacfee0ea82c11c265ec0008d4cd3621"
+judge_rubric_sha = "19ef49e402fd076f13b53b4aaed11b9817953ea4cb42532b37686fdca4897eb3"
+router_cases_sha = "cfda0d7e11948d3d47008f183a34734a9d56d27aadbfad52250103999104c923"
+phase5_benchmark_manifest_sha = "bb8d241281d0f539477a5602f89b1418333552f1d7eebf7ccb7eb30f5275f46f"
+
+[phase5_baselines]
+ao2_wallclock_path = "benchmarks/ao2-baseline.md"
+factory_v3_wallclock_path = "benchmarks/factory-v3-baseline.md"
+opus_baseline_path = "benchmarks/opus-baseline.json"
+
+[adapters]
+agy = "1.0.3;sha256=dd6adb7cb21baf2181e123df8415970b62e0bf5d362bc85d332b6c4018945dc4"
+gemini_api = "google-genai 2.7.0"
+scripted = "local"
+
+[auth]
+default = "agy_oauth"
+api_key_default = false
+agy_oauth = "S4_PASS_N20_2026-05-30"
+
+[tools]
+pytest = "9.0.3"
+ruff = "0.15.15"
+
+[phase0]
+cache_mult = "OPAQUE_1.5_UTF8_BYTES_DIV4_NO_CACHED_READS_G0_8"
+agy_concurrency_cap = 8
+cost_latency_projected_worker_cap = 4
+s1_g0_1_bootstrap = "PASSED_REDUCTION_41.19_RATIO_1.70_FIXTURE_f987590853816a7ab5fd4077353ff038c22ea6da68a4281566f02de8e414181a"
+s1_g0_1_live_repair = "PASSED_AGY_WALL_67.28S_POSTTESTS_7_DIFF_4fda0db4a05749590ab82c0895adb66a01c96e467eca24a80c61fe21b85017d5_TOKENS_UNAVAILABLE"
+s1_g0_1_wall_clock_comparands = "PASSED_AGY_67.28S_AO2_CODEX_162.05S_AO2_AGY_26.42S_FACTORY_AGY_230.68S_FACTORY_INITIAL_280.34S"
+s4_g0_4 = "PASSED_N20_ADHERENCE_1.0_P95S_29.12"
+s2_g0_2_bootstrap = "PASSED_N8_R1_SUCCESS_1.0_P95S_19.35"
+s2_g0_2_soak = "PASSED_N8_R5_SUCCESS_1.0_P95S_16.49_ADR032_ACCEPTED"
+s3_g0_3 = "PASSED_REPORT_29670bd01ff37c1ecc60f6f4417dfbcd735f757a3b388c0dcd446f52f91cf27b_LEDGER_EXACT"
+s5_g0_5 = "PASSED_REPORT_068c744e3d7159f8a9324643b68621e8abc5dbe7e6fcfe93d385b683a3589c40_RATIO_15.39_SCOPED_READ_REJECTED"
+s6_g0_6 = "PASSED_AGY_NO_MODEL_FLAG_DEFAULT_GEMINI_3_5_FLASH_HIGH_ISOLATED_HOME_AUTH_REQUIRED_DIVERSITY_EXPLICIT_GEMINI_SDK_API"
+g0_8 = "PASSED_FANOUT4_RATIO_1.435_QUALITY_5OF5_MICRO_P95S_7.12_CAP8_NOGO_RATIO_2.868"
+ac0 = "GO_2026_05_31_PHASE2_READY_DEFAULT_AGY_OAUTH_COST_FANOUT4"
+quality_floor_task_shas = [
+  "8514109da7acb93ca0316b80d48dd3b61d6cd277797870f4f9c169b916e35d4c",
+  "fa0d6fb723989f13d126ac1d17d139636b88e111c57b6b36bd0352c7704cf70d",
+  "b15234d70073258577645a6ec522376fb23110ae4642dae3bf8392f851d994a3",
+  "a93395a48007501fb7ed1b894a62eb0867679d92dbc633b845e225f6ec1595d6",
+  "9b17ad814b1272ba537900b1622dcc348c9ad60a8eaa75e5fd8e75656ad2cf23",
+]
+blinding_seed = "c2e0f0a94bfbab8b"
+measurement_environment = "macOS_local_uncontrolled_AGY_OAUTH_provider_region_unobserved"
+
+[measurement_environment]
+host_class = "macOS-26.3-arm64-arm-64bit-Mach-O"
+logical_cores = 10
+ram_gb = 16
+arch = "arm64"
+provider_region = "UNOBSERVED_AGY_OAUTH"
+network_profile = "local_uncontrolled"

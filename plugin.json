@@ -1,0 +1,16 @@
+{
+  "name": "agy-swarms",
+  "version": "0.5.1",
+  "description": "Local typed task-graph runner for deterministic agent workflow execution",
+  "author": {
+    "name": "Torachiyo Uesugi"
+  },
+  "license": "MIT OR Apache-2.0",
+  "keywords": [
+    "antigravity",
+    "swarm",
+    "gemini",
+    "multi-agent",
+    "agentic-workflow"
+  ]
+}

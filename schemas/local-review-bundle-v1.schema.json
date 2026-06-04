@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agy-swarms.local/schemas/local-review-bundle-v1.schema.json",
+  "title": "agy-swarms local review bundle",
+  "type": "object",
+  "required": [
+    "format",
+    "schema_version",
+    "graph_path",
+    "graph_sha256",
+    "schemas",
+    "commands_executed",
+    "preflight",
+    "review_bundle"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "format": {"const": "local-review-bundle"},
+    "schema_version": {"const": "v1"},
+    "graph_path": {"type": "string", "minLength": 1},
+    "graph_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "schemas": {
+      "type": "object",
+      "required": ["preflight", "command_review", "review_bundle"],
+      "additionalProperties": false,
+      "properties": {
+        "preflight": {"const": "schemas/local-graph-preflight-v1.schema.json"},
+        "command_review": {"const": "schemas/local-command-review-v1.schema.json"},
+        "review_bundle": {"const": "schemas/local-review-bundle-v1.schema.json"}
+      }
+    },
+    "commands_executed": {"const": false},
+    "preflight": {"type": "object"},
+    "review_bundle": {
+      "type": "object",
+      "required": ["command_node_count", "review_node_count", "review_complete"],
+      "additionalProperties": false,
+      "properties": {
+        "command_node_count": {"type": "integer", "minimum": 0},
+        "review_node_count": {"type": "integer", "minimum": 0},
+        "review_complete": {"type": "boolean"}
+      }
+    }
+  }
+}

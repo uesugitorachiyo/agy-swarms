@@ -1,0 +1,25 @@
+{
+  "rubric_sha": "19ef49e402fd076f13b53b4aaed11b9817953ea4cb42532b37686fdca4897eb3",
+  "tasks": [
+    {
+      "id": "reference_merge_fixture",
+      "prompt": "Implement the pinned reference merge bug fix and run its regression tests.",
+      "source_ref": "benchmarks/reference_task.md"
+    },
+    {
+      "id": "router_breadth_parallel_docs",
+      "prompt": "Review four independent planning documents and summarize contradictions.",
+      "source_ref": "benchmarks/router_cases.json#breadth_parallel_docs"
+    },
+    {
+      "id": "router_large_benchmark_suite",
+      "prompt": "Run a 12-task benchmark suite with independent workers and aggregate metrics.",
+      "source_ref": "benchmarks/router_cases.json#large_benchmark_suite"
+    },
+    {
+      "id": "router_single_refactor",
+      "prompt": "Rename one helper and update direct callers in one module.",
+      "source_ref": "benchmarks/router_cases.json#single_refactor"
+    }
+  ]
+}

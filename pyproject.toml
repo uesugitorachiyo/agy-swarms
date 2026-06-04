@@ -1,0 +1,36 @@
+[project]
+name = "agy-swarms"
+version = "0.5.1"
+description = "Local typed task-graph runner for deterministic agent workflow execution."
+requires-python = ">=3.11"
+readme = "README.md"
+dependencies = [
+    "google-genai>=0.3.0",   # Gemini API transport (FR-14); pin exact in agy.lock
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.6",
+    "pre-commit>=3.5",
+]
+
+[project.scripts]
+agy-swarms = "agy_swarms.main:main"   # thin CLI over the engine library (FR-28)
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["agy_swarms"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]

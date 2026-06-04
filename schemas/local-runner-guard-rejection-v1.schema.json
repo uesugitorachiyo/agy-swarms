@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agy-swarms.local/schemas/local-runner-guard-rejection-v1.schema.json",
+  "title": "agy-swarms local runner guard rejection report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "schema_version",
+    "schema",
+    "status",
+    "reason_class",
+    "diagnostic",
+    "repair_hint",
+    "commands_executed",
+    "review_bundle_guard"
+  ],
+  "properties": {
+    "format": {
+      "const": "local-runner-guard-rejection"
+    },
+    "schema_version": {
+      "const": "v1"
+    },
+    "schema": {
+      "const": "schemas/local-runner-guard-rejection-v1.schema.json"
+    },
+    "status": {
+      "const": "rejected"
+    },
+    "reason_class": {
+      "type": "string",
+      "enum": ["graph_digest_mismatch", "command_review_incomplete", "malformed_review_bundle"]
+    },
+    "diagnostic": {
+      "type": "string"
+    },
+    "repair_hint": {
+      "type": "string"
+    },
+    "commands_executed": {
+      "type": "boolean",
+      "const": false
+    },
+    "review_bundle_guard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "graph_path",
+        "bundle_path",
+        "graph_sha256",
+        "bundle_graph_sha256",
+        "graph_sha256_match",
+        "review_complete",
+        "missing_command_reviews",
+        "mismatched_command_reviews",
+        "commands_executed",
+        "guarded_run"
+      ],
+      "properties": {
+        "kind": {
+          "const": "review_bundle_run_guard"
+        },
+        "graph_path": {
+          "type": "string"
+        },
+        "bundle_path": {
+          "type": "string"
+        },
+        "graph_sha256": {
+          "type": "string"
+        },
+        "bundle_graph_sha256": {
+          "type": "string"
+        },
+        "graph_sha256_match": {
+          "type": "boolean"
+        },
+        "review_complete": {
+          "type": "boolean"
+        },
+        "missing_command_reviews": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mismatched_command_reviews": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "commands_executed": {
+          "type": "boolean",
+          "const": false
+        },
+        "guarded_run": {
+          "type": "boolean",
+          "const": false
+        }
+      }
+    }
+  }
+}

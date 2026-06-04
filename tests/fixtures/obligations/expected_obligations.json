@@ -1,0 +1,50 @@
+[
+  {
+    "id": "clause:0001",
+    "source": "rfc2119",
+    "source_ref": "line:3",
+    "text": "FR-9 The system SHALL implement dict-dispatch tools."
+  },
+  {
+    "id": "clause:0002",
+    "source": "rfc2119",
+    "source_ref": "line:4",
+    "text": "NFR-2 The conductor MUST keep context bounded."
+  },
+  {
+    "id": "clause:0003",
+    "source": "rfc2119",
+    "source_ref": "line:5",
+    "text": "CON-3 The system SHALL NOT trust self-grading as closure."
+  },
+  {
+    "id": "clause:0004",
+    "source": "rfc2119",
+    "source_ref": "line:6",
+    "text": "AC-30 The closure gate SHOULD parse obligations deterministically."
+  },
+  {
+    "id": "id:AC-30",
+    "source": "requirement_id",
+    "source_ref": "id:AC-30",
+    "text": "AC-30"
+  },
+  {
+    "id": "id:CON-3",
+    "source": "requirement_id",
+    "source_ref": "id:CON-3",
+    "text": "CON-3"
+  },
+  {
+    "id": "id:FR-9",
+    "source": "requirement_id",
+    "source_ref": "id:FR-9",
+    "text": "FR-9"
+  },
+  {
+    "id": "id:NFR-2",
+    "source": "requirement_id",
+    "source_ref": "id:NFR-2",
+    "text": "NFR-2"
+  }
+]

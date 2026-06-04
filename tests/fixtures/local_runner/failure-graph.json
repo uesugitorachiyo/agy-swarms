@@ -1,0 +1,25 @@
+{
+  "nodes": [
+    {
+      "id": "prepare",
+      "role": "test",
+      "objective": "emit deterministic setup evidence before failure",
+      "command": ["python", "-c", "print('fixture-failure:prepare')"]
+    },
+    {
+      "id": "unit",
+      "role": "test",
+      "objective": "fail deterministically with command evidence",
+      "dependencies": ["prepare"],
+      "command": ["python", "-c", "import sys; print('fixture-failure:unit'); sys.exit(3)"]
+    },
+    {
+      "id": "integration",
+      "role": "verify",
+      "objective": "remain skipped because unit failed",
+      "dependencies": ["unit"],
+      "command": ["python", "-c", "print('fixture-failure:should-not-run')"]
+    }
+  ],
+  "edges": [["prepare", "unit"], ["unit", "integration"]]
+}

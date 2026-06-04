@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agy-swarms.local/schemas/local-runner-report-v1.schema.json",
+  "title": "agy-swarms local runner report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "states",
+    "blockers",
+    "spent_tokens",
+    "spent_usd",
+    "concerns",
+    "changed_files",
+    "results"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["succeeded", "failed"]
+    },
+    "states": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["pending", "ready", "reserved", "running", "succeeded", "failed", "skipped", "cancelled"]
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "spent_tokens": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "spent_usd": {
+      "type": "number",
+      "minimum": 0
+    },
+    "concerns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "changed_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "results": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "error_class", "artifact", "stdout", "stderr", "exit_code"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["succeeded", "failed", "cancelled", "timed_out"]
+          },
+          "error_class": {
+            "type": "string"
+          },
+          "artifact": {
+            "type": "object"
+          },
+          "stdout": {
+            "type": "string"
+          },
+          "stderr": {
+            "type": "string"
+          },
+          "exit_code": {
+            "type": ["integer", "null"]
+          }
+        }
+      }
+    },
+    "review_bundle_guard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "graph_path",
+        "bundle_path",
+        "graph_sha256",
+        "bundle_graph_sha256",
+        "graph_sha256_match",
+        "review_complete",
+        "missing_command_reviews",
+        "mismatched_command_reviews",
+        "commands_executed",
+        "guarded_run"
+      ],
+      "properties": {
+        "kind": {
+          "const": "review_bundle_run_guard"
+        },
+        "graph_path": {
+          "type": "string"
+        },
+        "bundle_path": {
+          "type": "string"
+        },
+        "graph_sha256": {
+          "type": "string"
+        },
+        "bundle_graph_sha256": {
+          "type": "string"
+        },
+        "graph_sha256_match": {
+          "type": "boolean",
+          "const": true
+        },
+        "review_complete": {
+          "type": "boolean",
+          "const": true
+        },
+        "missing_command_reviews": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mismatched_command_reviews": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "commands_executed": {
+          "type": "boolean",
+          "const": false
+        },
+        "guarded_run": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    }
+  }
+}

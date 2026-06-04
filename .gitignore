@@ -1,0 +1,46 @@
+# Run artifacts, raw logs, and duplicate generated docs should not enter git.
+runs/
+artifacts/
+*.ndjson
+*.log
+*.jsonl
+.agy/
+.antigravitycli/
+checkpoints/
+*.sqlite
+*.sqlite-journal
+*.db
+
+# secrets / auth
+.env
+.env.*
+*.key
+gemini_api_key*
+.gemini/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# rust (post-Phase-2 port)
+target/
+
+# os / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# reference clones (mined during research, not part of the repo)
+/tmp/agy-ref/
+
+# scheduler status
+.scheduler_status.json
