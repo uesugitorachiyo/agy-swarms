@@ -2,6 +2,12 @@
 
 All notable release-engineering milestones for this repository are recorded here.
 
+## Unreleased
+
+- Clarified Antigravity plugin installation docs: the supported public path is
+  fresh clone plus `agy plugin install .`; raw GitHub URL install targets are
+  rejected by `agy` 1.0.5 as unsupported extension formats.
+
 ## v0.5.1 - 2026-06-03
 
 This release introduces hybrid review-routing capabilities, expands plugin installation verification, and fixes cross-platform terminal encoding crashes.

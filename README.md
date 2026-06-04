@@ -105,6 +105,10 @@ cd agy-swarms
 agy plugin install .
 ```
 
+`agy` 1.0.5 does not currently install this plugin directly from a raw GitHub
+URL such as `agy plugin install https://github.com/uesugitorachiyo/agy-swarms`.
+Use the fresh-clone command above, then install the local checkout.
+
 To remove it:
 
 ```bash

@@ -129,6 +129,29 @@ These checks are expected to leave `git status --short` clean.
 
 `GEMINI_API_KEY` is not required for this path. Local `agy` OAuth is also not required.
 
+## Antigravity plugin install verification
+
+The supported public install path is:
+
+```bash
+git clone https://github.com/uesugitorachiyo/agy-swarms.git
+cd agy-swarms
+agy plugin install .
+```
+
+This path was verified from a fresh public clone on macOS and Windows. As of
+`agy` 1.0.5, direct raw-URL installation is not a supported verification target:
+
+```bash
+agy plugin install https://github.com/uesugitorachiyo/agy-swarms
+agy plugin install https://github.com/uesugitorachiyo/agy-swarms.git
+```
+
+Both direct URL forms fail in the `agy` external-install path after the CLI
+clones the repository and rejects the temporary checkout as an unsupported
+extension format. Keep public docs on the fresh-clone-plus-local-install path
+unless a future `agy` release changes this behavior.
+
 ## Local graph preflight
 
 Use the v0.6 graph preflight workflow when you need to validate and inspect an
