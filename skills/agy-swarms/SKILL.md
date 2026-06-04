@@ -1,61 +1,58 @@
 ---
 name: agy-swarms
-description: Use when planning, preflighting, running, inspecting, or resuming local typed task-graph workflows with agy-swarms.
+description: "Decompose, orchestrate, and execute complex coding and analysis tasks using parallel Gemini 3.5 Flash worker swarms."
 ---
 
 # agy-swarms Skill
 
-Use this skill when a task benefits from a deterministic local task graph:
-preflight first, review command surfaces, then run only when local command
-execution is explicitly allowed.
+Use this skill when you need to schedule, manage, or debug concurrent multi-agent executions using the `agy-swarms` library and CLI conductor.
 
-## Core Commands
+## Command Wrappers & Slash Shortcuts
 
-Run commands from the repository root.
+This plugin provides explicit command wrappers to simplify agent invocation and reduce ambiguity. Use the following slash commands instead of manual CLI execution:
 
-Preflight a graph without executing commands:
+*   **/agy-preflight `<graph-path>`**: Validate and summarize a local graph without executing command nodes.
+*   **/agy-run `<task-or-graph-path>`**: Run the task graph conductor. If local execution is requested, require reviewer checks and `--allow-local-commands`.
+*   **/agy-inspect `<args>`**: Inspect details of checkpoints (`--checkpoint <path>`) or review bundles (`--review-bundle <path>`).
+*   **/agy-resume `<checkpoint-path>`**: Resume a failed or interrupted conductor run from checkpoints.
+*   **/agy-review-route `<args>`**: Test reviewer/closer adapter routing (e.g. `codex`, `off`, `agy`) without run execution.
 
-```bash
-uv run agy-swarms preflight --graph tests/fixtures/local_runner/success-graph.json
+## Raw CLI Core Commands
+
+If you need to run commands manually, all commands are run using `uv` from the repository root:
+
+*   **Plan and Preview Graph:** Validate task shape and check the decomposition plan before running:
+    ```bash
+    uv run agy-swarms plan --task <path-to-task.json>
+    ```
+*   **Run Conductor:** Run the task graph through the parallel conductor:
+    ```bash
+    uv run agy-swarms run --task <path-to-task.json> --allow-local-commands
+    ```
+*   **Resume Execution:** If a run fails or is interrupted, resume from the last saved checkpoints folder:
+    ```bash
+    uv run agy-swarms resume --checkpoint <path-to-checkpoints-dir>
+    ```
+*   **Inspect Results:** Inspect structured result logs and tokens:
+    ```bash
+    uv run agy-swarms inspect --checkpoint <path-to-checkpoint>
+    ```
+
+
+## Task Specification Shape
+
+A task spec file is a simple JSON file specifying the high-level objective:
+
+```json
+{
+  "task": "Decompose and execute the migration of database models to v2",
+  "model_pins": {
+    "default": "gemini-3.5-flash"
+  }
+}
 ```
 
-Create a saved review bundle before execution:
-
-```bash
-uv run agy-swarms preflight \
-  --graph tests/fixtures/local_runner/success-graph.json \
-  --review-bundle \
-  --output /tmp/agy-review-bundle.json
-```
-
-Run a graph and write a saved report:
-
-```bash
-uv run agy-swarms run \
-  --graph tests/fixtures/local_runner/success-graph.json \
-  --allow-local-commands \
-  --report /tmp/agy-swarms-success-report.json
-```
-
-Inspect a saved report:
-
-```bash
-uv run agy-swarms inspect --checkpoint /tmp/agy-swarms-success-report.json
-```
-
-Load a saved report through the resume path without rerunning local command
-nodes:
-
-```bash
-uv run agy-swarms resume --checkpoint /tmp/agy-swarms-success-report.json
-```
-
-## Operating Rules
-
-- Prefer `preflight` before `run`.
-- Treat local command execution as a side effect.
-- Use `--allow-local-commands` only when the command surface has been reviewed.
-- Store generated reports and review bundles outside the repository unless a
-  fixture is intentionally being added.
-- Keep worker output concise: return summaries, evidence, and file pointers
-  rather than raw transcripts.
+## Best Practices
+1. **Parallel Execution:** Use `agy-swarms` when tasks can be decoupled and executed in parallel (e.g. running tests, building separate files).
+2. **Context Compression:** Keep task outputs concise; workers return summarized evidence and file pointers rather than dumping raw transcripts.
+3. **Command Safety:** Always review plans using `plan` first. Local node execution requires the `--allow-local-commands` flag.
