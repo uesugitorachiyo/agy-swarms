@@ -21,6 +21,7 @@ def run_local_graph(
     allow_local_commands: bool,
     reviewer: str = "agy",
     closer: str = "agy",
+    review_telemetry_path: str | None = None,
 ) -> dict[str, Any]:
     """Run a TaskGraph locally through the conductor and return stable JSON evidence."""
     if any(node.command for node in graph.nodes) and not allow_local_commands:
@@ -40,5 +41,6 @@ def run_local_graph(
         epoch=Epoch(epoch_seq=1, epoch_id="local-runner"),
         reviewer=reviewer,
         closer=closer,
+        review_telemetry_path=review_telemetry_path,
     )
     return report_to_json(conductor.run())

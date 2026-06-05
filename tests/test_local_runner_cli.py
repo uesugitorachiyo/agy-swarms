@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -297,6 +298,58 @@ def test_cli_review_route_rejects_unknown_adapter(capsys):
     assert "invalid choice" in capsys.readouterr().err
 
 
+def test_cli_review_route_includes_telemetry_recommendation(tmp_path: Path, capsys):
+    telemetry_file = tmp_path / "review.jsonl"
+    telemetry_file.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "node_id": "a",
+                        "role": "reviewer",
+                        "source": "codex",
+                        "verdict": "block",
+                        "model": "gpt-5.5",
+                        "reasoning_effort": "low",
+                        "later_outcome": "failed",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "node_id": "b",
+                        "role": "reviewer",
+                        "source": "codex",
+                        "verdict": "block",
+                        "model": "gpt-5.5",
+                        "reasoning_effort": "low",
+                        "later_outcome": "failed",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "node_id": "c",
+                        "role": "reviewer",
+                        "source": "codex",
+                        "verdict": "pass",
+                        "model": "gpt-5.5",
+                        "reasoning_effort": "low",
+                        "later_outcome": "passed",
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(["review-route", "--telemetry", str(telemetry_file)])
+
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["recommendation"]["backend"] == "codex-low"
+    assert payload["recommendation"]["reason"] == "codex_precision_good"
+
+
 def test_cli_inspect_reads_run_report_json(tmp_path: Path, capsys):
     report_file = tmp_path / "report.json"
     report_file.write_text(
@@ -496,7 +549,40 @@ def test_cli_failure_report_inspect_and_resume_do_not_rerun_completed_nodes(tmp_
     assert counter_file.read_text(encoding="utf-8") == "1"
 
 
-def test_cli_routing_maps_to_report_json_on_disk(tmp_path: Path, capsys):
+def test_cli_routing_maps_to_report_json_on_disk(tmp_path: Path, capsys, monkeypatch):
+    def fake_run_subprocess(self, cmd: list[str]) -> subprocess.CompletedProcess[str]:
+        output_path = Path(cmd[cmd.index("--output-last-message") + 1])
+        schema_path = Path(cmd[cmd.index("--output-schema") + 1])
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        role_fields = (
+            {
+                "accepted": True,
+                "verification_evidence": ["fake verification evidence"],
+                "unresolved_obligations": [],
+                "release_ready": True,
+            }
+            if "accepted" in schema["properties"]
+            else {"findings": []}
+        )
+        output_path.write_text(
+            json.dumps(
+                {
+                    "summary": "Fake Codex review passed.",
+                    "verdict": "pass",
+                    "confidence": 1.0,
+                    "concerns": [],
+                    "blockers": [],
+                    **role_fields,
+                }
+            ),
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(cmd, 0, stdout="tokens used\n0\n", stderr="")
+
+    from agy_swarms.adapters.codex import CodexAdapter
+
+    monkeypatch.setattr(CodexAdapter, "_run_subprocess", fake_run_subprocess)
+
     graph_file = tmp_path / "routing-graph.json"
     report_file = tmp_path / "routing-report.json"
 
@@ -542,6 +628,125 @@ def test_cli_routing_maps_to_report_json_on_disk(tmp_path: Path, capsys):
     assert artifact["route"]["adapter"] == "codex"
     assert artifact["route"]["transport"] == "codex-cli"
     assert artifact["route"]["auth"] == "cli-session"
+
+
+def test_cli_run_writes_codex_review_telemetry(tmp_path: Path, monkeypatch):
+    def fake_run_subprocess(self, cmd: list[str]) -> subprocess.CompletedProcess[str]:
+        output_path = Path(cmd[cmd.index("--output-last-message") + 1])
+        output_path.write_text(
+            json.dumps(
+                {
+                    "summary": "Fake Codex review passed.",
+                    "verdict": "pass",
+                    "confidence": 1.0,
+                    "concerns": [],
+                    "blockers": [],
+                    "findings": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(cmd, 0, stdout="tokens used\n444\n", stderr="")
+
+    from agy_swarms.adapters.codex import CodexAdapter
+
+    monkeypatch.setattr(CodexAdapter, "_run_subprocess", fake_run_subprocess)
+
+    graph_file = tmp_path / "routing-graph.json"
+    telemetry_file = tmp_path / "review-telemetry.jsonl"
+    graph_file.write_text(
+        json.dumps(
+            {
+                "nodes": [
+                    {
+                        "id": "rev",
+                        "role": "reviewer",
+                        "objective": "check changes",
+                    }
+                ],
+                "edges": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "run",
+            "--graph",
+            str(graph_file),
+            "--reviewer",
+            "codex",
+            "--review-telemetry",
+            str(telemetry_file),
+        ]
+    )
+
+    assert exit_code == 0
+    record = json.loads(telemetry_file.read_text(encoding="utf-8"))
+    assert record["node_id"] == "rev"
+    assert record["source"] == "codex"
+    assert record["verdict"] == "pass"
+    assert record["token_output"] == 444
+
+
+def test_cli_review_benchmark_writes_report(tmp_path: Path, monkeypatch, capsys):
+    def fake_run_subprocess(self, cmd: list[str]) -> subprocess.CompletedProcess[str]:
+        output_path = Path(cmd[cmd.index("--output-last-message") + 1])
+        output_path.write_text(
+            json.dumps(
+                {
+                    "summary": "Fake Codex review passed.",
+                    "verdict": "pass",
+                    "confidence": 1.0,
+                    "concerns": [],
+                    "blockers": [],
+                    "findings": [],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(cmd, 0, stdout="tokens used\n222\n", stderr="")
+
+    from agy_swarms.adapters.codex import CodexAdapter
+
+    monkeypatch.setattr(CodexAdapter, "_run_subprocess", fake_run_subprocess)
+
+    cases_file = tmp_path / "cases.json"
+    report_file = tmp_path / "benchmark-report.json"
+    cases_file.write_text(
+        json.dumps(
+            [
+                {
+                    "id": "clean_case",
+                    "role": "reviewer",
+                    "objective": "clean_case",
+                    "expected_verdict": "pass",
+                    "expected_labels": ["clean"],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "review-benchmark",
+            "--cases",
+            str(cases_file),
+            "--backends",
+            "codex-low",
+            "--output",
+            str(report_file),
+        ]
+    )
+
+    assert exit_code == 0
+    stdout_payload = json.loads(capsys.readouterr().out)
+    report_payload = json.loads(report_file.read_text(encoding="utf-8"))
+    assert stdout_payload["status"] == "completed"
+    assert report_payload["aggregate"]["codex-low"]["accuracy"] == 1.0
+    assert report_payload["results"][0]["token_output"] == 222
 
 
 def test_cli_preflight_mock_bundle_stdout(tmp_path: Path, capsys):

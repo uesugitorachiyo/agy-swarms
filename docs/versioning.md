@@ -10,14 +10,15 @@ on `main`.
 
 ## Current package release
 
-The current package version is `0.5.1`, released after hybrid review-routing,
-plugin installation smoke coverage, and terminal encoding fixes landed. The
-matching release tag is `v0.5.1`.
+The current package version is `0.5.2`, released after functional Codex
+reviewer/closer execution, review telemetry, seeded review benchmarks, and
+Codex low/high route recommendation support landed. The matching release tag is
+`v0.5.2`.
 
 Before the release cut, the package stayed at `0.0.0` while release mechanics,
 documentation, CI-safe checks, and packaging smoke tests were hardened.
 
-The previous package release was `0.5.0`, with matching release tag `v0.5.0`.
+The previous package release was `0.5.1`, with matching release tag `v0.5.1`.
 
 ## Future release gate
 

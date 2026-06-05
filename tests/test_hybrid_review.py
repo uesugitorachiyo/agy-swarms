@@ -1,11 +1,51 @@
 import pytest
 
+from pathlib import Path
+import json
+import subprocess
+
 from agy_swarms.hybrid_review import (
     ReviewAdapter,
     ReviewRole,
     ReviewRouteError,
     route_review_role,
 )
+
+
+@pytest.fixture
+def fake_codex_subprocess(monkeypatch):
+    def fake_run_subprocess(self, cmd: list[str]) -> subprocess.CompletedProcess[str]:
+        output_path = Path(cmd[cmd.index("--output-last-message") + 1])
+        schema_path = Path(cmd[cmd.index("--output-schema") + 1])
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        role_fields = (
+            {
+                "accepted": True,
+                "verification_evidence": ["fake verification evidence"],
+                "unresolved_obligations": [],
+                "release_ready": True,
+            }
+            if "accepted" in schema["properties"]
+            else {"findings": []}
+        )
+        output_path.write_text(
+            json.dumps(
+                {
+                    "summary": "Fake Codex review passed.",
+                    "verdict": "pass",
+                    "confidence": 1.0,
+                    "concerns": [],
+                    "blockers": [],
+                    **role_fields,
+                }
+            ),
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(cmd, 0, stdout="tokens used\n0\n", stderr="")
+
+    from agy_swarms.adapters.codex import CodexAdapter
+
+    monkeypatch.setattr(CodexAdapter, "_run_subprocess", fake_run_subprocess)
 
 
 def test_reviewer_defaults_to_agy_oauth_gemini_flash():
@@ -39,7 +79,7 @@ def test_reviewer_can_use_codex_cli_when_user_selects_it():
     assert route.adapter == ReviewAdapter.CODEX
     assert route.transport == "codex-cli"
     assert route.auth == "cli-session"
-    assert route.model == "default"
+    assert route.model == "gpt-5.5"
     assert route.read_only is True
     assert route.reason == "user_selected_cli_review"
 
@@ -50,7 +90,7 @@ def test_closer_can_use_claude_code_cli_when_user_selects_it():
     assert route.adapter == ReviewAdapter.CLAUDE
     assert route.transport == "claude-code-cli"
     assert route.auth == "cli-session"
-    assert route.model == "default"
+    assert route.model == "gpt-5.5-high"
     assert route.read_only is True
     assert route.requires_passing_gates is True
 
@@ -70,7 +110,7 @@ def test_review_route_serializes_without_api_key_defaults():
     assert "api_key" not in payload.values()
 
 
-def test_conductor_executes_review_node_with_custom_routing():
+def test_conductor_executes_review_node_with_custom_routing(fake_codex_subprocess):
     from agy_swarms.types import NodeSpec, TaskGraph
     from agy_swarms.conductor import Conductor
     from agy_swarms.adapters.scripted import ScriptedAdapter, CannedResult
@@ -116,6 +156,84 @@ def test_conductor_executes_review_node_with_custom_routing():
     report2 = cond2.run()
     assert report2.status.value == "succeeded"
     assert report2.results["rev"].artifact["ok"] is True
+
+
+def test_conductor_batches_parallel_codex_review_nodes(monkeypatch):
+    from agy_swarms.adapters.codex import CodexAdapter
+    from agy_swarms.adapters.scripted import ScriptedAdapter
+    from agy_swarms.budget import Dims
+    from agy_swarms.conductor import Conductor
+    from agy_swarms.types import Epoch, NodeSpec, TaskGraph
+
+    calls: list[list[str]] = []
+
+    def fake_run_subprocess(self, cmd: list[str]) -> subprocess.CompletedProcess[str]:
+        calls.append(cmd)
+        output_path = Path(cmd[cmd.index("--output-last-message") + 1])
+        if "batch" in Path(cmd[cmd.index("--output-schema") + 1]).name:
+            output_path.write_text(
+                json.dumps(
+                    {
+                        "nodes": {
+                            "rev_a": {
+                                "summary": "A passed.",
+                                "verdict": "pass",
+                                "confidence": 1.0,
+                                "concerns": [],
+                                "blockers": [],
+                                "findings": [],
+                            },
+                            "rev_b": {
+                                "summary": "B passed.",
+                                "verdict": "pass",
+                                "confidence": 1.0,
+                                "concerns": [],
+                                "blockers": [],
+                                "findings": [],
+                            },
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+        else:
+            output_path.write_text(
+                json.dumps(
+                    {
+                        "summary": "single fallback",
+                        "verdict": "pass",
+                        "confidence": 1.0,
+                        "concerns": [],
+                        "blockers": [],
+                        "findings": [],
+                    }
+                ),
+                encoding="utf-8",
+            )
+        return subprocess.CompletedProcess(cmd, 0, stdout="tokens used\n100\n", stderr="")
+
+    monkeypatch.setattr(CodexAdapter, "_run_subprocess", fake_run_subprocess)
+
+    graph = TaskGraph(
+        nodes=[
+            NodeSpec(id="rev_a", role="reviewer", objective="review A"),
+            NodeSpec(id="rev_b", role="reviewer", objective="review B"),
+        ]
+    )
+    report = Conductor(
+        graph,
+        ScriptedAdapter({}),
+        limit=Dims(tokens=5000, usd=2.0),
+        epoch=Epoch(epoch_seq=1, epoch_id="test"),
+        reviewer="codex",
+        cap=2,
+    ).run()
+
+    assert report.status.value == "succeeded"
+    assert report.results["rev_a"].artifact["review"]["summary"] == "A passed."
+    assert report.results["rev_b"].artifact["review"]["summary"] == "B passed."
+    assert len(calls) == 1
+    assert "Return one review per node id" in calls[0][-1]
 
 
 def test_off_adapter_routing():
@@ -222,7 +340,7 @@ def test_conductor_review_budget_alert():
     assert "exceeded lightweight token guardrail" in alerts_over[0]["warning"]
 
 
-def test_conductor_closer_downgrade_auto_triage():
+def test_conductor_closer_downgrade_auto_triage(fake_codex_subprocess):
     from agy_swarms.types import NodeSpec, TaskGraph
     from agy_swarms.conductor import Conductor
     from agy_swarms.adapters.scripted import ScriptedAdapter, CannedResult
@@ -352,7 +470,7 @@ def test_conductor_closer_downgrade_codex_to_off():
     assert report.results["cls"].artifact["route"]["transport"] == "none"
 
 
-def test_conductor_reviewer_fallback_on_failure():
+def test_conductor_reviewer_fallback_on_failure(fake_codex_subprocess):
     from agy_swarms.types import NodeSpec, TaskGraph
     from agy_swarms.conductor import Conductor
     from agy_swarms.adapters.scripted import ScriptedAdapter, CannedResult

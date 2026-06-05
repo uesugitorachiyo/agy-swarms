@@ -9,8 +9,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_changelog_records_frozen_ac0_ac6_and_v050_release():
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    package_version = pyproject["project"]["version"]
 
     assert "v0.0.0-ac0-ac6" in changelog
+    assert f"v{package_version}" in changelog
     assert "AC0-AC6" in changelog
     assert "v0.5.0 - 2026-06-01" in changelog
     assert "Local Runner Report Contracts" in changelog
@@ -29,10 +32,12 @@ def test_changelog_records_frozen_ac0_ac6_and_v050_release():
 
 def test_versioning_policy_records_050_release_gate():
     policy = (ROOT / "docs" / "versioning.md").read_text(encoding="utf-8")
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    package_version = pyproject["project"]["version"]
 
     assert "v0.0.0-ac0-ac6" in policy
-    assert "`0.5.1`" in policy
-    assert "`v0.5.1`" in policy
+    assert f"`{package_version}`" in policy
+    assert f"`v{package_version}`" in policy
     assert "scripts/release_health.py" in policy
     assert "scripts/v02_local_runner_probe.py" in policy
     assert "scripts/v04_fixture_replay_probe.py" in policy
@@ -44,4 +49,16 @@ def test_versioning_policy_records_050_release_gate():
 def test_package_version_matches_v050_release():
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.5.1"
+    assert pyproject["project"]["version"] == "0.5.2"
+
+
+def test_release_docs_explain_cross_platform_verification():
+    release_docs = (ROOT / "docs" / "release-verification.md").read_text(encoding="utf-8")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert "windows-latest" in release_docs
+    assert "macos-latest" in release_docs
+    assert "ubuntu-latest" in release_docs
+    assert "workflow_dispatch" in release_docs
+    assert "uv build" in release_docs
+    assert "uv build" in readme

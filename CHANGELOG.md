@@ -8,6 +8,22 @@ All notable release-engineering milestones for this repository are recorded here
   fresh clone plus `agy plugin install .`; raw GitHub URL install targets are
   rejected by `agy` 1.0.5 as unsupported extension formats.
 
+## v0.5.2 - 2026-06-05
+
+This release makes Codex reviewer/closer routing functional and adds calibration
+tools for the hybrid review workflow.
+
+- Replaced route-only Codex reviewer/closer handling with read-only Codex CLI
+  execution, structured reviewer/closer schemas, and role-specific model
+  configuration.
+- Added review telemetry and seeded review benchmark support for comparing
+  `codex-low` and `codex-high` behavior.
+- Added conservative Codex review batching outside checkpointed runs and
+  documented the checkpoint journal design needed before enabling checkpointed
+  batches.
+- Added telemetry-driven route recommendations for choosing Codex low/high
+  effort from observed review outcomes.
+
 ## v0.5.1 - 2026-06-03
 
 This release introduces hybrid review-routing capabilities, expands plugin installation verification, and fixes cross-platform terminal encoding crashes.

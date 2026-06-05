@@ -186,6 +186,7 @@ class Conductor:
         allow_drift: bool = False,
         reviewer: str = "agy",
         closer: str = "agy",
+        review_telemetry_path: str | None = None,
     ) -> None:
         self.graph = graph
         self.adapter = adapter
@@ -209,6 +210,7 @@ class Conductor:
         self.allow_drift = allow_drift
         self.reviewer = reviewer
         self.closer = closer
+        self.review_telemetry_path = review_telemetry_path
         self._drift_records: list[DriftRecord] = []
 
     # --- barrier driver (FR-5/FR-5.1/FR-6.6/FR-7) --------------------------
@@ -221,10 +223,11 @@ class Conductor:
             if not ready:
                 break
             batch = ready[: self.cap]  # FR-5/CON-8 back-pressure
-            for node_id in batch:
-                self.agent(self._by_id[node_id])
-                if self._budget_stopped:
-                    break
+            if not self._dispatch_codex_review_batch(batch):
+                for node_id in batch:
+                    self.agent(self._by_id[node_id])
+                    if self._budget_stopped:
+                        break
             # FR-5.1: join, then skip the transitive dependents of any failed node.
             for node_id in batch:
                 if self.runtime[node_id].status == NodeStatus.FAILED:
@@ -236,6 +239,120 @@ class Conductor:
             if self._budget_stopped:  # FR-6.6 best-so-far
                 break
         return self._build_report()
+
+    def _dispatch_codex_review_batch(self, batch: list[str]) -> bool:
+        """Dispatch a ready batch of Codex review roles through one CLI invocation.
+
+        This deliberately does not run under checkpoint mode yet; resume/cache semantics
+        stay on the single-node path until batch journal records are designed.
+        """
+        if not self._can_codex_batch(batch):
+            return False
+
+        from .adapters.codex import CodexAdapter
+
+        prepared: list[tuple[NodeSpec, Any]] = []
+        for node_id in batch:
+            node = self._by_id[node_id]
+            runtime = self.runtime[node.id]
+            node.idempotency_key = compute_idempotency_key(
+                node, self._resolve_inputs(node), self.tool_registry
+            )
+            self._restore_runtime(node, runtime)
+            self.scheduler.mark(node.id, NodeStatus.READY)
+            admission = self._reserve(node, runtime)
+            if not admission.admitted:
+                for prepared_node, _ in prepared:
+                    self.ledger.release(self.epoch.epoch_seq, prepared_node.id)
+                self._budget_stopped = True
+                self._add_blocker(
+                    node.id, "budget exhausted before dispatch", admission.reason or "global"
+                )
+                return True
+            self.scheduler.mark(node.id, NodeStatus.RESERVED)
+            runtime.reservation_id = admission.reservation_id
+            self.scheduler.mark(node.id, NodeStatus.RUNNING)
+            runtime.attempt += 1
+            prepared.append((node, runtime))
+
+        nodes = [node for node, _ in prepared]
+        try:
+            envelopes = CodexAdapter(telemetry_path=self.review_telemetry_path).run_batch(nodes)
+        except Exception as exc:
+            envelopes = [
+                ResultEnvelope(
+                    node_id=node.id,
+                    idempotency_key=node.idempotency_key,
+                    status="failed",
+                    error_class=ErrorClass.UNKNOWN,
+                    artifact={"crash": type(exc).__name__},
+                    stdout_ref=f"{type(exc).__name__}: {exc}",
+                    token_usage={
+                        "input": 0,
+                        "thinking": 0,
+                        "output": 0,
+                        "cached": 0,
+                        "accounting": "exact",
+                    },
+                )
+                for node in nodes
+            ]
+
+        envelope_by_id = {envelope.node_id: envelope for envelope in envelopes}
+        for node, runtime in prepared:
+            envelope = envelope_by_id.get(node.id)
+            if envelope is None:
+                envelope = ResultEnvelope(
+                    node_id=node.id,
+                    idempotency_key=node.idempotency_key,
+                    status="failed",
+                    error_class=ErrorClass.SCHEMA_INVALID,
+                    artifact={"missing_batch_result": node.id},
+                )
+            self._stamp(envelope, node, runtime)
+            actual = Dims(tokens=_billable(envelope.token_usage), usd=float(envelope.cost_usd))
+            self.ledger.commit(self.epoch.epoch_seq, node.id, actual, accounting="exact")
+            runtime.budget_consumed = _add_consumed(runtime.budget_consumed, actual)
+            runtime.error_class = envelope.error_class
+            if classify(envelope) is None:
+                self.scheduler.mark(node.id, NodeStatus.SUCCEEDED)
+            else:
+                self.scheduler.mark(node.id, NodeStatus.FAILED)
+                self._add_blocker(node.id, "node failed", envelope.error_class.value)
+            self.results[node.id] = envelope
+            self._maybe_record_review_budget_alert(node, actual)
+        return True
+
+    def _can_codex_batch(self, batch: list[str]) -> bool:
+        if self.checkpoint is not None or len(batch) < 2:
+            return False
+        from .hybrid_review import route_review_role
+
+        for node_id in batch:
+            node = self._by_id[node_id]
+            if node.role not in ("reviewer", "closer"):
+                return False
+            adapter_name = self.reviewer if node.role == "reviewer" else self.closer
+            if route_review_role(node.role, adapter=adapter_name).adapter != "codex":
+                return False
+        return True
+
+    def _maybe_record_review_budget_alert(self, node: NodeSpec, actual: Dims) -> None:
+        if node.role not in ("reviewer", "closer") or actual.tokens <= 1000:
+            return
+        self.events.append(
+            {
+                "type": "review_budget_alert",
+                "node_id": node.id,
+                "role": node.role,
+                "spent_tokens": actual.tokens,
+                "threshold": 1000,
+                "warning": (
+                    f"Review role node '{node.id}' exceeded lightweight token guardrail "
+                    f"threshold (1000 tokens) with {actual.tokens} tokens."
+                ),
+            }
+        )
 
     def _check_drift(self) -> None:
         """AC-31: verify lockfile drift before any node runs (§D.5).
@@ -499,7 +616,7 @@ class Conductor:
                 from .adapters.codex import CodexAdapter
 
                 try:
-                    return CodexAdapter().run(
+                    return CodexAdapter(telemetry_path=self.review_telemetry_path).run(
                         node, attempt=runtime.attempt, reservation_id=reservation_id
                     )
                 except Exception as exc:

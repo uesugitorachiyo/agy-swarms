@@ -31,6 +31,13 @@ from agy_swarms.review_bundle_inspection import (
     ReviewBundleInspectionError,
     summarize_review_bundle,
 )
+from agy_swarms.review_benchmark import (
+    DEFAULT_REVIEW_BENCHMARK_CASES,
+    load_seeded_review_cases,
+    run_review_benchmark,
+)
+from agy_swarms.review_routing_policy import recommend_review_backend
+from agy_swarms.review_telemetry import summarize_review_telemetry
 from agy_swarms.types import Epoch, NodeSpec, TaskSpec
 
 
@@ -158,6 +165,7 @@ def cmd_run(args: argparse.Namespace) -> int:
                 allow_local_commands=args.allow_local_commands,
                 reviewer=args.reviewer,
                 closer=args.closer,
+                review_telemetry_path=args.review_telemetry,
             )
             if guard_summary is not None:
                 output["review_bundle_guard"] = {
@@ -203,6 +211,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             allow_drift=args.allow_drift,
             reviewer=args.reviewer,
             closer=args.closer,
+            review_telemetry_path=args.review_telemetry,
         )
         report = conductor.run()
 
@@ -445,19 +454,43 @@ def cmd_review_route(args: argparse.Namespace) -> int:
     except ReviewRouteError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
-    print(
-        json.dumps(
-            {
-                "status": "review_route_resolved",
-                "reviewer": reviewer.to_json(),
-                "closer": closer.to_json(),
-                "commands_executed": False,
-            },
-            indent=2,
-            sort_keys=True,
-        )
-    )
+    payload: dict[str, Any] = {
+        "status": "review_route_resolved",
+        "reviewer": reviewer.to_json(),
+        "closer": closer.to_json(),
+        "commands_executed": False,
+    }
+    if args.telemetry:
+        telemetry_summary = summarize_review_telemetry(args.telemetry)
+        recommendation = recommend_review_backend(telemetry_summary)
+        payload["telemetry"] = telemetry_summary
+        payload["recommendation"] = {
+            "backend": recommendation.backend,
+            "reason": recommendation.reason,
+            "sample_count": recommendation.sample_count,
+        }
+    print(json.dumps(payload, indent=2, sort_keys=True))
     return 0
+
+
+def cmd_review_benchmark(args: argparse.Namespace) -> int:
+    """Run seeded reviewer/closer benchmark cases against selected backends."""
+    try:
+        cases = load_seeded_review_cases(args.cases)
+        report = run_review_benchmark(
+            cases,
+            backends=args.backends.split(","),
+            cwd=Path.cwd(),
+        )
+        if args.output:
+            output_path = Path(args.output)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return 0
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
 
 
 def cmd_pre_commit_install(args: argparse.Namespace) -> int:
@@ -618,6 +651,11 @@ def main(argv: list[str] | None = None) -> int:
         choices=["agy", "codex", "claude", "ollama", "llamafile", "off"],
         help="Closer adapter: agy, codex, claude, ollama, llamafile, or off.",
     )
+    p_run.add_argument(
+        "--review-telemetry",
+        required=False,
+        help="Optional JSONL path for code-free reviewer/closer telemetry records.",
+    )
 
     # preflight command
     p_preflight = subparsers.add_parser(
@@ -688,6 +726,32 @@ def main(argv: list[str] | None = None) -> int:
         choices=["agy", "codex", "claude", "ollama", "llamafile", "off"],
         help="Closer adapter: agy, codex, claude, ollama, llamafile, or off.",
     )
+    p_review_route.add_argument(
+        "--telemetry",
+        required=False,
+        help="Optional review telemetry JSONL path used to recommend codex-low/codex-high.",
+    )
+
+    # review-benchmark command
+    p_review_benchmark = subparsers.add_parser(
+        "review-benchmark",
+        help="Run seeded reviewer/closer benchmark cases against selected backends.",
+    )
+    p_review_benchmark.add_argument(
+        "--cases",
+        default=str(DEFAULT_REVIEW_BENCHMARK_CASES),
+        help="Path to seeded review benchmark cases JSON.",
+    )
+    p_review_benchmark.add_argument(
+        "--backends",
+        default="codex-low,codex-high",
+        help="Comma-separated benchmark backends, e.g. codex-low,codex-high.",
+    )
+    p_review_benchmark.add_argument(
+        "--output",
+        required=False,
+        help="Optional path to write benchmark report JSON.",
+    )
 
     # pre-commit-install command
     subparsers.add_parser(
@@ -713,6 +777,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_handoff(args)
     elif args.command == "review-route":
         return cmd_review_route(args)
+    elif args.command == "review-benchmark":
+        return cmd_review_benchmark(args)
     elif args.command == "pre-commit-install":
         return cmd_pre_commit_install(args)
 

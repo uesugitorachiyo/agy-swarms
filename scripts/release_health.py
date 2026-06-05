@@ -175,10 +175,10 @@ def run_checks() -> int:
         # Erase "Running..." text and render status line
         print("\r", end="")
         if passed:
-            print(f"  {_color('✓', '32')} {name:<35} {_color('[PASSED]', '1;32')}")
+            print(f"  {_color('[OK]', '32')} {name:<35} {_color('[PASSED]', '1;32')}")
             passed_count += 1
         else:
-            print(f"  {_color('✗', '31')} {name:<35} {_color('[FAILED]', '1;31')}")
+            print(f"  {_color('[FAIL]', '31')} {name:<35} {_color('[FAILED]', '1;31')}")
             # Try loading JSON output or fallback to stderr/stdout summary
             try:
                 data = json.loads(res.stdout)
