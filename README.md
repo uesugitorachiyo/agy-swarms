@@ -77,7 +77,12 @@ The public CI path is intentionally local and deterministic:
 ```bash
 uv run ruff check .
 uv run pytest -q
+uv build
 ```
+
+For hosted macOS/Windows/Linux verification, run the manual GitHub Actions `CI`
+workflow. It uses a `workflow_dispatch` matrix across `ubuntu-latest`,
+`macos-latest`, and `windows-latest`.
 
 Additional release verification notes live in
 [docs/release-verification.md](docs/release-verification.md). Version policy

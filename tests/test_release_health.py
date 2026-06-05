@@ -184,3 +184,14 @@ def test_release_health_reports_milestone_neutral_certification_label():
     )
 
     assert "READY (local-release-health-certified)" in source
+
+
+def test_release_health_status_markers_are_windows_ascii_safe():
+    source = (Path(__file__).resolve().parents[1] / "scripts" / "release_health.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert "[OK]" in source
+    assert "[FAIL]" in source
+    assert "✓" not in source
+    assert "✗" not in source

@@ -25,6 +25,29 @@ uv run python scripts/release_health.py
 This is only a local tool-path requirement. It does not require GitHub Actions,
 provider API keys, local `agy` OAuth, or live model billing.
 
+## Manual cross-platform CI
+
+GitHub Actions remains manual-only while billing is postponed. When hosted
+verification is needed, run the `CI` workflow with `workflow_dispatch`. The
+workflow verifies the same deterministic path on:
+
+- `ubuntu-latest`
+- `macos-latest`
+- `windows-latest`
+
+Each matrix job runs:
+
+```bash
+uv sync --extra dev
+uv run ruff check .
+uv run pytest -q
+uv build
+```
+
+The workflow sets `PYTHONIOENCODING=utf-8` and the release health output uses
+ASCII status markers (`[OK]` / `[FAIL]`) so Windows CP1252/charmap terminals do
+not fail on status output.
+
 ## Local runner report evidence
 
 For billing-free local runner reports, inspect saved JSON evidence without
