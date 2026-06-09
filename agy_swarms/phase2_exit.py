@@ -172,11 +172,10 @@ def _run_width(width: int, *, c_max: int) -> dict[str, Any]:
 
 
 def _graph_for_width(width: int) -> tuple[TaskGraph, _CountingAdapter]:
-    subtasks = [
+    subtasks: list[dict[str, str]] = [
         {
             "id": f"worker_{index:02d}",
             "objective": f"repair reference-task shard {index}",
-            "pointers": ["benchmarks/reference_task.md"],
         }
         for index in range(width)
     ]

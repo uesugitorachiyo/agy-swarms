@@ -87,23 +87,15 @@ def test_makefile_exposes_typecheck_target():
     assert "uv run mypy" in makefile
 
 
-def test_makefile_typecheck_covers_cli_runner_and_release_health_modules():
+def test_makefile_typecheck_covers_full_package_and_release_health_modules():
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
 
     for checked_path in (
-        "agy_swarms/cli.py",
-        "agy_swarms/local_runner.py",
+        "agy_swarms",
         "scripts/release_health.py",
         "scripts/release_health_registry.py",
         "scripts/release_health_docs.py",
         "scripts/rewrite_release_health_docs.py",
-        "agy_swarms/conductor.py",
-        "agy_swarms/conductor_checkpointing.py",
-        "agy_swarms/conductor_drift.py",
-        "agy_swarms/conductor_fallback.py",
-        "agy_swarms/conductor_pipeline.py",
-        "agy_swarms/conductor_review.py",
-        "agy_swarms/conductor_review_budget.py",
     ):
         assert checked_path in makefile
     assert "--explicit-package-bases" in makefile

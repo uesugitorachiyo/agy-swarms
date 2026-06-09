@@ -23,7 +23,7 @@ def test_load_graph_parses_two_command_nodes(tmp_path: Path):
     graph = load_graph(graph_file)
 
     assert [node.id for node in graph.nodes] == ["a", "b"]
-    assert graph.edges == (("a", "b"),)
+    assert graph.edges == [("a", "b")]
     assert graph.nodes[0].command == ["python", "-c", "print('a')"]
 
 
@@ -44,7 +44,7 @@ def test_load_graph_materializes_edges_into_dependencies(tmp_path: Path):
 
     graph = load_graph(graph_file)
 
-    assert graph.edges == (("a", "b"),)
+    assert graph.edges == [("a", "b")]
     assert graph.nodes[1].dependencies == ["a"]
 
 

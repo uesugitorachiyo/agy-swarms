@@ -36,8 +36,8 @@ def load_graph(path: str | Path) -> TaskGraph:
     if not isinstance(raw, dict) or not isinstance(raw.get("nodes"), list):
         raise GraphLoadError("graph JSON must contain a nodes list")
 
-    edges = tuple(_edge_from_json(edge) for edge in raw.get("edges", ()))
-    nodes = tuple(_node_from_json(index, item) for index, item in enumerate(raw["nodes"]))
+    edges = [_edge_from_json(edge) for edge in raw.get("edges", ())]
+    nodes = [_node_from_json(index, item) for index, item in enumerate(raw["nodes"])]
     _validate_edge_endpoints(nodes, edges)
     nodes = _materialize_edge_dependencies(nodes, edges)
     graph = TaskGraph(nodes=nodes, edges=edges)
@@ -84,9 +84,7 @@ def _edge_from_json(item: Any) -> tuple[str, str]:
     return (item[0], item[1])
 
 
-def _validate_edge_endpoints(
-    nodes: tuple[NodeSpec, ...], edges: tuple[tuple[str, str], ...]
-) -> None:
+def _validate_edge_endpoints(nodes: list[NodeSpec], edges: list[tuple[str, str]]) -> None:
     node_ids = {node.id for node in nodes}
     for index, (left, right) in enumerate(edges):
         if left not in node_ids or right not in node_ids:
@@ -99,8 +97,8 @@ def _validate_edge_endpoints(
 
 
 def _materialize_edge_dependencies(
-    nodes: tuple[NodeSpec, ...], edges: tuple[tuple[str, str], ...]
-) -> tuple[NodeSpec, ...]:
+    nodes: list[NodeSpec], edges: list[tuple[str, str]]
+) -> list[NodeSpec]:
     dependencies_by_target: dict[str, list[str]] = {
         node.id: list(node.dependencies) for node in nodes
     }
@@ -108,7 +106,7 @@ def _materialize_edge_dependencies(
         target_dependencies = dependencies_by_target[target]
         if source not in target_dependencies:
             target_dependencies.append(source)
-    return tuple(replace(node, dependencies=dependencies_by_target[node.id]) for node in nodes)
+    return [replace(node, dependencies=dependencies_by_target[node.id]) for node in nodes]
 
 
 def _node_ref(index: int, node_id: str) -> str:
@@ -139,7 +137,7 @@ def _looks_sensitive(value: str) -> bool:
     )
 
 
-def _sanitize_validation_message(message: str, nodes: tuple[NodeSpec, ...]) -> str:
+def _sanitize_validation_message(message: str, nodes: list[NodeSpec]) -> str:
     sanitized = message
     for node in nodes:
         if _looks_sensitive(node.id):
