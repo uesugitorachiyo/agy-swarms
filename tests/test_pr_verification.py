@@ -103,3 +103,33 @@ def test_update_body_replaces_legacy_test_plan_section():
     assert "## Test Plan" not in updated
     assert "## Verification" in updated
     assert "pytest: `704 passed`" in updated
+
+
+def test_update_body_replaces_unmarked_verification_section():
+    old = "\n".join(
+        [
+            "## Summary",
+            "- Keep this",
+            "",
+            "## Verification",
+            "- make verify",
+            "",
+            "## Notes",
+            "Still here",
+        ]
+    )
+    block = render_verification_block(
+        commit="abc1234",
+        command="make verify",
+        pytest_count=704,
+        mypy_files=95,
+        release_health_passed=24,
+        release_health_total=24,
+    )
+
+    updated = update_body(old, block)
+
+    assert "- make verify" not in updated
+    assert updated.count("## Verification") == 1
+    assert "pytest: `704 passed`" in updated
+    assert "## Notes\nStill here" in updated

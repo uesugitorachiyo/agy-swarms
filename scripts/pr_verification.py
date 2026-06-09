@@ -48,6 +48,10 @@ def update_body(existing: str, verification_block: str) -> str:
             return f"{before.rstrip()}\n{verification_block}{after}"
         return f"{before.rstrip()}\n\n{section}{after}"
 
+    verification_section = _replace_markdown_section(existing, "Verification", section)
+    if verification_section is not None:
+        return verification_section
+
     test_plan_index = existing.find("\n## Test Plan")
     if test_plan_index == -1 and existing.startswith("## Test Plan"):
         test_plan_index = 0
@@ -56,6 +60,29 @@ def update_body(existing: str, verification_block: str) -> str:
         return f"{prefix}\n\n{section}\n"
 
     return f"{existing.rstrip()}\n\n{section}\n"
+
+
+def _replace_markdown_section(existing: str, heading: str, replacement: str) -> str | None:
+    marker = f"## {heading}"
+    if existing.startswith(marker):
+        start = 0
+    else:
+        marker_index = existing.find(f"\n{marker}")
+        if marker_index == -1:
+            return None
+        start = marker_index + 1
+
+    next_heading = existing.find("\n## ", start + len(marker))
+    end = len(existing) if next_heading == -1 else next_heading + 1
+    prefix = existing[:start].rstrip()
+    suffix = existing[end:].lstrip()
+    if prefix and suffix:
+        return f"{prefix}\n\n{replacement}\n\n{suffix}"
+    if prefix:
+        return f"{prefix}\n\n{replacement}\n"
+    if suffix:
+        return f"{replacement}\n\n{suffix}"
+    return f"{replacement}\n"
 
 
 def _run_text(command: list[str]) -> str:
