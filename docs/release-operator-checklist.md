@@ -109,6 +109,10 @@ gh run list --workflow Release --limit 3
 gh run watch <run-id> --interval 10
 ```
 
+The workflow verifies `v<version>` against `pyproject.toml` with
+`scripts/verify_release_tag.py` before it runs `make verify`, rebuilds
+artifacts, or creates the GitHub Release.
+
 Verify the published GitHub Release and attached artifacts:
 
 ```bash

@@ -110,7 +110,7 @@ version bump through final evidence capture.
 
 Before publishing, the workflow checks out the tag, installs the development and
 Gemini extras, verifies that the tag matches the `pyproject.toml` package
-version, and runs:
+version with `scripts/verify_release_tag.py`, and runs:
 
 ```bash
 make verify
@@ -120,6 +120,9 @@ It then rebuilds the package artifacts with `uv build` and attaches both
 `dist/*.whl` and `dist/*.tar.gz` to the GitHub Release using generated release
 notes. This workflow publishes only GitHub Releases; it does not publish to
 PyPI or any package index.
+
+The tag/version guard is covered by `tests/test_release_tag_guard.py` so the
+release workflow does not rely on untested inline shell logic.
 
 The release workflow serializes publishing per tag and does not cancel an
 in-progress release publication. It restores the uv cache when available but

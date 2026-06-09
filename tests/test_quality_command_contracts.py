@@ -195,6 +195,7 @@ def test_makefile_typecheck_covers_full_package_and_release_health_modules():
         "scripts/release_health_registry.py",
         "scripts/release_health_docs.py",
         "scripts/rewrite_release_health_docs.py",
+        "scripts/verify_release_tag.py",
     ):
         assert checked_path in makefile
     assert "--explicit-package-bases" in makefile

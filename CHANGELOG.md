@@ -14,6 +14,8 @@ All notable release-engineering milestones for this repository are recorded here
   request CI runs while preserving `main` and release evidence.
 - Added a release operator checklist covering version bump, changelog, tag,
   GitHub Release publication, and verification evidence.
+- Added a tested release tag/version guard script used by the GitHub Release
+  workflow before publishing artifacts.
 
 ## v0.5.3 - 2026-06-09
 
