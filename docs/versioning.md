@@ -48,3 +48,7 @@ After a release tag is pushed, `.github/workflows/release.yml` verifies the tag
 against `pyproject.toml`, runs `make verify`, rebuilds the wheel and source
 distribution, and publishes them as GitHub Release artifacts with generated
 notes.
+
+Use `docs/release-operator-checklist.md` for the end-to-end release sequence:
+version bump, changelog, lockfile, local verification, pull request checks, tag,
+GitHub Release publication, and final evidence capture.
