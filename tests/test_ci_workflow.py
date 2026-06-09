@@ -12,7 +12,7 @@ RELEASE_DOC = ROOT / "docs" / "release-verification.md"
 REQUIRED_MAIN_STATUS_CHECKS = [
     "Fast Checks (ubuntu-latest)",
     "Fast Checks (macos-latest)",
-    "Fast Checks (windows-latest)",
+    "Fast Checks (windows-2025)",
     "Verify Package Install Modes",
     "Release Health",
 ]
@@ -46,7 +46,8 @@ def test_ci_workflow_runs_linux_macos_and_windows_matrix():
     assert "matrix:" in workflow
     assert "ubuntu-latest" in workflow
     assert "macos-latest" in workflow
-    assert "windows-latest" in workflow
+    assert "windows-2025" in workflow
+    assert "windows-latest" not in workflow
     assert "runs-on: ${{ matrix.os }}" in workflow
 
 

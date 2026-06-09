@@ -84,7 +84,7 @@ and release health.
 Hosted verification runs automatically in the GitHub Actions `CI` workflow for
 pull requests and pushes to `main`. The workflow keeps `workflow_dispatch`
 enabled for manual reruns and uses a matrix across `ubuntu-latest`,
-`macos-latest`, and `windows-latest`.
+`macos-latest`, and `windows-2025`.
 
 GitHub Release publishing runs from version tags matching `v*` and attaches the
 wheel plus source distribution built from the tagged commit.

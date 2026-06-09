@@ -18,7 +18,7 @@ The required status checks are:
 
 - `Fast Checks (ubuntu-latest)`
 - `Fast Checks (macos-latest)`
-- `Fast Checks (windows-latest)`
+- `Fast Checks (windows-2025)`
 - `Verify Package Install Modes`
 - `Release Health`
 

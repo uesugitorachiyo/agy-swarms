@@ -8,6 +8,8 @@ All notable release-engineering milestones for this repository are recorded here
   `main` merge gate.
 - Added a tag-driven GitHub Release publishing workflow for wheel and source
   distribution artifacts.
+- Pinned Windows CI to `windows-2025` and updated the required merge check name
+  to avoid the floating `windows-latest` runner redirect.
 
 ## v0.5.3 - 2026-06-09
 
