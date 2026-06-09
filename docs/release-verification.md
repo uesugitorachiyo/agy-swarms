@@ -7,7 +7,8 @@ This project has two verification surfaces:
 
 ## CI-safe release health
 
-Use this command for routine local release checks and for CI once GitHub Actions billing is available:
+Use this command for routine local release checks and for the slow CI release
+health job:
 
 ```bash
 uv run python scripts/release_health.py
@@ -56,11 +57,13 @@ Do not lower `AGY_VERIFY_MIN_FREE_MIB` to bypass recurring failures. Free disk
 space or move `TMPDIR`; otherwise full release-health probes can fail late while
 creating virtualenvs, git sandboxes, package artifacts, or plugin smoke copies.
 
-## Manual cross-platform CI
+## Automatic cross-platform CI
 
-GitHub Actions remains manual-only while billing is postponed. When hosted
-verification is needed, run the `CI` workflow with `workflow_dispatch`. The
-workflow verifies the same deterministic path on:
+GitHub Actions runs automatically for pull requests targeting `main` and for
+pushes to `main`. The `CI` workflow also keeps `workflow_dispatch` enabled for
+manual reruns after an infrastructure failure or when an operator wants fresh
+hosted evidence without a new commit. The workflow verifies the same
+deterministic path on:
 
 - `ubuntu-latest`
 - `macos-latest`
@@ -70,10 +73,17 @@ Each matrix job runs:
 
 ```bash
 uv sync --extra dev --extra gemini
-uv run ruff check .
-uv run ruff format --check .
-uv run python -m pytest -q
-uv build
+make verify-fast
+```
+
+`make verify-fast` includes lint, format, type-check, docs drift, pytest, and
+package build coverage through `uv build`.
+
+The release-health job runs once on Ubuntu after the fast matrix checks pass:
+
+```bash
+uv sync --extra dev --extra gemini
+make release-health
 ```
 
 The workflow sets `PYTHONIOENCODING=utf-8` and the release health output uses

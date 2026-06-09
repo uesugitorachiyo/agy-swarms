@@ -165,6 +165,19 @@ def test_release_docs_document_disk_preflight():
         assert expected in docs
 
 
+def test_release_docs_document_automatic_ci_triggers():
+    docs = (ROOT / "docs" / "release-verification.md").read_text(encoding="utf-8")
+
+    for expected in (
+        "pull requests",
+        "pushes to `main`",
+        "workflow_dispatch",
+        "manual reruns",
+    ):
+        assert expected in docs
+    assert "manual-only while billing is postponed" not in docs
+
+
 def test_makefile_exposes_typecheck_target():
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
 
