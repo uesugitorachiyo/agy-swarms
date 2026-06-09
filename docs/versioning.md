@@ -43,3 +43,8 @@ release authority once a pull request or `main` push starts. Keep
 `workflow_dispatch` available for manual reruns after infrastructure failures.
 The expected `main` branch protection policy lives in
 `.github/branch-protection.json` and is documented in `docs/branch-protection.md`.
+
+After a release tag is pushed, `.github/workflows/release.yml` verifies the tag
+against `pyproject.toml`, runs `make verify`, rebuilds the wheel and source
+distribution, and publishes them as GitHub Release artifacts with generated
+notes.

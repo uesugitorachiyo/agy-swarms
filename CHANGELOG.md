@@ -6,6 +6,8 @@ All notable release-engineering milestones for this repository are recorded here
 
 - Added a repository-local branch-protection policy and docs for the required
   `main` merge gate.
+- Added a tag-driven GitHub Release publishing workflow for wheel and source
+  distribution artifacts.
 
 ## v0.5.3 - 2026-06-09
 

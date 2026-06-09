@@ -4,8 +4,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
+RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
 BRANCH_PROTECTION = ROOT / ".github" / "branch-protection.json"
 BRANCH_PROTECTION_DOC = ROOT / "docs" / "branch-protection.md"
+RELEASE_DOC = ROOT / "docs" / "release-verification.md"
 
 REQUIRED_MAIN_STATUS_CHECKS = [
     "Fast Checks (ubuntu-latest)",
@@ -18,6 +20,10 @@ REQUIRED_MAIN_STATUS_CHECKS = [
 
 def _workflow_text() -> str:
     return WORKFLOW.read_text(encoding="utf-8")
+
+
+def _release_workflow_text() -> str:
+    return RELEASE_WORKFLOW.read_text(encoding="utf-8")
 
 
 def _branch_protection_policy() -> dict:
@@ -124,3 +130,40 @@ def test_branch_protection_docs_record_required_merge_gate():
 
     for check in policy["branches"]["main"]["required_status_checks"]["contexts"]:
         assert check in docs
+
+
+def test_release_workflow_publishes_github_releases_from_version_tags():
+    workflow = _release_workflow_text()
+
+    assert "name: Release" in workflow
+    assert "tags:" in workflow
+    assert "- 'v*'" in workflow
+    assert "workflow_dispatch:" in workflow
+    assert "contents: write" in workflow
+    assert "fetch-depth: 0" in workflow
+
+
+def test_release_workflow_verifies_and_attaches_package_artifacts():
+    workflow = _release_workflow_text()
+
+    assert "uv sync --extra dev --extra gemini" in workflow
+    assert "Verify Release Tag Matches Package Version" in workflow
+    assert "pyproject.toml" in workflow
+    assert "does not match pyproject.toml version" in workflow
+    assert "make verify" in workflow
+    assert "uv build" in workflow
+    assert "dist/*.tar.gz" in workflow
+    assert "dist/*.whl" in workflow
+    assert "gh release create" in workflow
+    assert "--generate-notes" in workflow
+    assert "--verify-tag" in workflow
+
+
+def test_release_docs_explain_github_release_publishing():
+    docs = RELEASE_DOC.read_text(encoding="utf-8")
+
+    assert ".github/workflows/release.yml" in docs
+    assert "GitHub Release" in docs
+    assert "`v*`" in docs
+    assert "dist/*.whl" in docs
+    assert "dist/*.tar.gz" in docs
