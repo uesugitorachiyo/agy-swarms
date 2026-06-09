@@ -41,3 +41,5 @@ GitHub Actions now runs automatically for pull requests and pushes to `main`.
 Local `make verify` remains the pre-PR release gate, and remote CI is the hosted
 release authority once a pull request or `main` push starts. Keep
 `workflow_dispatch` available for manual reruns after infrastructure failures.
+The expected `main` branch protection policy lives in
+`.github/branch-protection.json` and is documented in `docs/branch-protection.md`.

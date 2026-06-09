@@ -4,7 +4,8 @@ All notable release-engineering milestones for this repository are recorded here
 
 ## Unreleased
 
-- No unreleased changes.
+- Added a repository-local branch-protection policy and docs for the required
+  `main` merge gate.
 
 ## v0.5.3 - 2026-06-09
 
