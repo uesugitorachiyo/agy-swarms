@@ -175,6 +175,27 @@ def test_release_health_includes_plugin_smoke_probe():
     assert "scripts/plugin_smoke_probe.py" in source
 
 
+def test_plugin_smoke_prepares_sparse_install_source(tmp_path):
+    from scripts.plugin_smoke_probe import PLUGIN_INSTALL_EXCLUDES, prepare_install_source
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / ".codex-plugin").mkdir()
+    (repo / ".codex-plugin" / "plugin.json").write_text("{}", encoding="utf-8")
+    (repo / "README.md").write_text("keep", encoding="utf-8")
+    for excluded in PLUGIN_INSTALL_EXCLUDES:
+        path = repo / excluded
+        path.mkdir()
+        (path / "heavy.txt").write_text("skip", encoding="utf-8")
+
+    install_source = prepare_install_source(repo, tmp_path / "install")
+
+    assert (install_source / "README.md").exists()
+    assert (install_source / ".codex-plugin" / "plugin.json").exists()
+    for excluded in PLUGIN_INSTALL_EXCLUDES:
+        assert not (install_source / excluded).exists()
+
+
 def test_release_health_reports_milestone_neutral_certification_label():
     source = _runner_source()
 

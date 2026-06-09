@@ -91,6 +91,27 @@ def test_conductor_behavior_tests_use_shared_support_helpers():
         assert "def _epoch" not in text
 
 
+def test_pr2_merge_checklist_documents_landing_steps():
+    checklist = ROOT / "docs" / "pr2-merge-checklist.md"
+    assert checklist.exists()
+    text = checklist.read_text(encoding="utf-8")
+
+    for expected in (
+        "PR #2",
+        "make verify",
+        "make pr-verification PR_NUMBER=2",
+        "remote CI",
+        "status checks",
+        "merge strategy",
+        "post-merge",
+        "git switch main",
+        "git pull --ff-only",
+        "no release tag",
+        "no version bump",
+    ):
+        assert expected in text
+
+
 def test_makefile_exposes_verification_targets():
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
 

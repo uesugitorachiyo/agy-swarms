@@ -56,7 +56,7 @@ Implement `render_verification_block(...)` and `update_body(...)` with stable ma
 Support:
 
 ```bash
-uv run python scripts/pr_verification.py --pr 2 --pytest-count 709 --mypy-files 95 --release-health-passed 24 --release-health-total 24
+uv run python scripts/pr_verification.py --pr 2 --pytest-count 711 --mypy-files 95 --release-health-passed 24 --release-health-total 24
 ```
 
 The CLI should read the current body with `gh pr view`, update it, and write it with `gh pr edit --body-file`.
@@ -73,7 +73,7 @@ Add a Make target that runs the updater with environment defaults:
 
 ```make
 pr-verification:
-	uv run python scripts/pr_verification.py --pr "$${PR_NUMBER:?set PR_NUMBER}" --pytest-count "$${PYTEST_COUNT:-709}" --mypy-files "$${MYPY_FILES:-95}" --release-health-passed "$${RELEASE_HEALTH_PASSED:-24}" --release-health-total "$${RELEASE_HEALTH_TOTAL:-24}"
+	uv run python scripts/pr_verification.py --pr "$${PR_NUMBER:?set PR_NUMBER}" --pytest-count "$${PYTEST_COUNT:-711}" --mypy-files "$${MYPY_FILES:-95}" --release-health-passed "$${RELEASE_HEALTH_PASSED:-24}" --release-health-total "$${RELEASE_HEALTH_TOTAL:-24}"
 ```
 
 ### Task 4: Verify, Commit, Push, And Refresh PR #2
@@ -112,7 +112,7 @@ git push
 Run:
 
 ```bash
-uv run python scripts/pr_verification.py --pr 2 --pytest-count 709 --mypy-files 95 --release-health-passed 24 --release-health-total 24
+uv run python scripts/pr_verification.py --pr 2 --pytest-count 711 --mypy-files 95 --release-health-passed 24 --release-health-total 24
 ```
 
 Expected: PR #2 body shows current verification evidence for the pushed commit.
