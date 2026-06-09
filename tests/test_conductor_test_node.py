@@ -70,6 +70,17 @@ class FakeRunner:
         return self.outcome
 
 
+def test_conductor_command_helpers_are_importable():
+    from agy_swarms.conductor_commands import run_command_node
+
+    node = NodeSpec(id="t", role="test", objective="t", command=["pytest"])
+    envelope = run_command_node(node, CommandOutcome(exit_code=0, stdout="ok", stderr=""))
+
+    assert envelope.status == "succeeded"
+    assert envelope.artifact == {"exit_code": 0, "command": ["pytest"]}
+    assert envelope.stdout_ref == "ok"
+
+
 def _t_then_d():
     t = NodeSpec(id="t", role="test", objective="t", command=["pytest"])
     d = NodeSpec(id="d", role="worker", objective="d", dependencies=["t"])
