@@ -64,7 +64,9 @@ Release verification is split between a registry, renderer, and runner:
 - `scripts/release_health_docs.py` renders probe documentation from the registry.
 - `scripts/rewrite_release_health_docs.py` rewrites the generated probe block in `docs/release-verification.md`.
 
-The CI workflow also runs `make verify` in a clean checkout. Locally, `make verify`
+The CI workflow runs automatically for pull requests and pushes to `main`. It
+uses `make verify-fast` across the OS matrix and `make release-health` once on
+Ubuntu after fast checks pass. Locally, `make verify` composes both surfaces and
 includes a strict docs drift check, so individual verification commands can be
 more convenient while a working tree intentionally contains uncommitted changes.
 Heavy Make targets run `disk-preflight` first and require at least 1 GiB free on

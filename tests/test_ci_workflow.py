@@ -9,12 +9,14 @@ def _workflow_text() -> str:
     return WORKFLOW.read_text(encoding="utf-8")
 
 
-def test_ci_workflow_is_manual_only_while_billing_is_postponed():
+def test_ci_workflow_runs_on_pull_requests_pushes_to_main_and_manual_dispatch():
     workflow = _workflow_text()
 
+    assert "pull_request:" in workflow
+    assert "push:" in workflow
     assert "workflow_dispatch:" in workflow
-    assert "push:" not in workflow
-    assert "pull_request:" not in workflow
+    assert "branches:" in workflow
+    assert "main" in workflow
 
 
 def test_ci_workflow_runs_linux_macos_and_windows_matrix():
