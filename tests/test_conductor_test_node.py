@@ -9,53 +9,18 @@ triggers the FR-35 model-fallback.
 """
 
 from agy_swarms.adapters.scripted import CannedResult, ScriptedAdapter
-from agy_swarms.budget import Dims
 from agy_swarms.conductor import Conductor
 from agy_swarms.runners import CommandOutcome
 from agy_swarms.types import (
-    Epoch,
-    ErrorClass,
     NodeSpec,
     NodeStatus,
-    ResultEnvelope,
     RunStatus,
     TaskGraph,
 )
-
-_LIMIT = Dims(tokens=1_000_000, usd=1000.0)
-
-
-def _epoch():
-    return Epoch(epoch_seq=1, epoch_id="E1")
-
-
-def _env(status="succeeded", *, artifact=None):
-    return ResultEnvelope(
-        node_id="",
-        idempotency_key="",
-        status=status,
-        error_class=ErrorClass.NONE,
-        artifact=artifact or {},
-        token_usage={"input": 0, "thinking": 0, "output": 0, "cached": 0, "accounting": "exact"},
-    )
-
-
-class FakeAdapter:
-    """Worker adapter for the dependent node; a test node wrongly dispatched here would
-    pop a missing script entry (KeyError) and surface in ``.calls``."""
-
-    accounting = "exact"
-
-    def __init__(self, script):
-        self.script = {k: list(v) for k, v in script.items()}
-        self.calls: list[str] = []
-
-    def covers(self, required):
-        return True
-
-    def run(self, node, *, attempt=0, reservation_id=None):
-        self.calls.append(node.id)
-        return self.script[node.id].pop(0)
+from tests.conductor_support import LIMIT as _LIMIT
+from tests.conductor_support import FakeAdapter
+from tests.conductor_support import envelope as _env
+from tests.conductor_support import epoch as _epoch
 
 
 class FakeRunner:
@@ -68,6 +33,17 @@ class FakeRunner:
     def __call__(self, command):
         self.calls.append(command)
         return self.outcome
+
+
+def test_conductor_command_helpers_are_importable():
+    from agy_swarms.conductor_commands import run_command_node
+
+    node = NodeSpec(id="t", role="test", objective="t", command=["pytest"])
+    envelope = run_command_node(node, CommandOutcome(exit_code=0, stdout="ok", stderr=""))
+
+    assert envelope.status == "succeeded"
+    assert envelope.artifact == {"exit_code": 0, "command": ["pytest"]}
+    assert envelope.stdout_ref == "ok"
 
 
 def _t_then_d():

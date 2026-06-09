@@ -1,10 +1,69 @@
 from __future__ import annotations
 
 import json
+import inspect
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from agy_swarms.main import main
+
+
+def test_cli_module_exposes_parser_builder():
+    from agy_swarms.cli import build_parser
+
+    parser = build_parser()
+    args = parser.parse_args(["review-route", "--reviewer", "codex"])
+
+    assert args.command == "review-route"
+    assert args.reviewer == "codex"
+
+
+def test_cli_dispatch_uses_commands_package():
+    import agy_swarms.commands as commands
+
+    assert hasattr(commands, "cmd_run")
+    assert hasattr(commands, "cmd_preflight")
+
+
+def test_command_handlers_are_split_by_group():
+    from agy_swarms.commands.inspect import cmd_inspect
+    from agy_swarms.commands.install import cmd_pre_commit_install
+    from agy_swarms.commands.preflight import cmd_preflight
+    from agy_swarms.commands.review import cmd_review_route
+    from agy_swarms.commands.run import cmd_run
+
+    assert callable(cmd_run)
+    assert callable(cmd_preflight)
+    assert callable(cmd_inspect)
+    assert callable(cmd_review_route)
+    assert callable(cmd_pre_commit_install)
+
+
+def test_inspect_command_helpers_are_split():
+    from agy_swarms.commands.inspect_bundle import inspect_review_bundle
+    from agy_swarms.commands.report_summary import summarize_run_report
+    from agy_swarms.commands.resume import cmd_resume
+
+    assert callable(inspect_review_bundle)
+    assert callable(summarize_run_report)
+    assert callable(cmd_resume)
+
+
+def test_grouped_command_modules_do_not_delegate_to_legacy():
+    import agy_swarms.commands.inspect as inspect_commands
+    import agy_swarms.commands.install as install_commands
+    import agy_swarms.commands.preflight as preflight_commands
+    import agy_swarms.commands.review as review_commands
+    import agy_swarms.commands.run as run_commands
+
+    for module in (
+        inspect_commands,
+        install_commands,
+        preflight_commands,
+        review_commands,
+        run_commands,
+    ):
+        assert "._legacy" not in inspect.getsource(module)
 
 
 def test_cli_plan_validates_and_emits_preview(tmp_path: Path, capsys):
@@ -54,7 +113,7 @@ def test_cli_resume_delegates_to_library(tmp_path: Path, capsys):
     assert result["checkpoint"] == str(checkpoint_dir)
 
 
-@patch("agy_swarms.main.Conductor")
+@patch("agy_swarms.commands.run.Conductor")
 def test_cli_proves_thinness_by_monkeypatching(mock_conductor, tmp_path: Path):
     # Proves the CLI is a thin wrapper by verifying it imports and invokes the library Conductor
     mock_inst = MagicMock()
@@ -72,7 +131,7 @@ def test_cli_proves_thinness_by_monkeypatching(mock_conductor, tmp_path: Path):
     assert mock_conductor.called
 
 
-@patch("agy_swarms.main.Conductor")
+@patch("agy_swarms.commands.run.Conductor")
 def test_cli_run_dry_run_forces_codex_reviewers(mock_conductor, tmp_path: Path):
     mock_inst = MagicMock()
     mock_inst.run.return_value.status.value = "succeeded"
@@ -92,8 +151,8 @@ def test_cli_run_dry_run_forces_codex_reviewers(mock_conductor, tmp_path: Path):
     assert kwargs["closer"] == "codex"
 
 
-@patch("agy_swarms.main.run_local_graph")
-@patch("agy_swarms.main.load_graph")
+@patch("agy_swarms.commands.run.run_local_graph")
+@patch("agy_swarms.commands.run.load_graph")
 def test_cli_run_dry_run_forces_codex_with_graph(
     mock_load_graph, mock_run_local_graph, tmp_path: Path
 ):

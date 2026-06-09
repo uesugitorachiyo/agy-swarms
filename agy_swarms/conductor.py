@@ -28,16 +28,40 @@ barrier semantics. Async/live adapters are a later-phase concern.
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass, field
 from typing import Any
 
 from .budget import BudgetLedger, Dims
-from .canonical import canonical, sha256_hex
-from .checkpoint import Checkpoint, JournalEntry
+from .checkpoint import Checkpoint
+from .conductor_budget import (
+    actual_from_envelope,
+    commit_actual_usage,
+    dims_from_consumed as _dims,
+)
+from .conductor_adapters import adapter_crash_envelope
+from .conductor_commands import run_command_node
+from .conductor_checkpointing import (
+    adopt_cached_runtime,
+    build_node_journal_entry,
+    build_pipeline_journal_entry,
+    cached_success_envelope,
+    cached_terminal_envelope,
+    persisted_runtime_matches,
+    pipeline_stage_key,
+)
+from .conductor_drift import collect_drift_records, report_drift_records
+from .conductor_fallback import (
+    execute_fallback_run,
+    model_switch_event,
+    next_review_fallback_adapter,
+)
+from .conductor_reports import PipelineItemResult, RunReport
+from .conductor_pipeline import run_pipeline_item
+from .conductor_review import run_review_node
+from .conductor_review_budget import review_budget_events
 from .lockfile import Lockfile
 from .model_routing import route_model_tier
 from .reducers import run_reducer
-from .runners import classify_exit, subprocess_runner
+from .runners import subprocess_runner
 from .scheduler import Scheduler
 from .types import (
     DriftRecord,
@@ -51,7 +75,6 @@ from .types import (
     TaskGraph,
     compute_idempotency_key,
 )
-from .validate import check_drift
 
 __all__ = [
     "Conductor",
@@ -113,52 +136,6 @@ def retry_eligible(
         and remaining_retries > 0
         and error_class in retryable_error_classes
     )
-
-
-# --- run + pipeline result shapes ------------------------------------------
-
-
-@dataclass
-class RunReport:
-    """A run's terminal summary (§D.7-adjacent). Byte-stable over the scripted substrate."""
-
-    status: RunStatus
-    results: dict[str, ResultEnvelope]
-    states: dict[str, NodeStatus]
-    blockers: list[dict[str, str]]
-    spent_tokens: int
-    spent_usd: float
-    drift_records: list[DriftRecord] = field(default_factory=list)
-
-
-@dataclass
-class PipelineItemResult:
-    """One pipeline item's outcome (FR-7 per-item cadence; FR-5.1-analog isolation)."""
-
-    item: Any
-    status: str
-    envelope: ResultEnvelope | None
-    stages_completed: int
-    blocker: dict[str, str] | None = None
-
-
-# --- small dim helpers ------------------------------------------------------
-
-
-def _dims(consumed: dict[str, Any]) -> Dims:
-    return Dims(tokens=int(consumed.get("tokens", 0)), usd=float(consumed.get("usd", 0.0)))
-
-
-def _billable(token_usage: dict[str, Any]) -> int:
-    # thinking billed as output (§D.4 cost-ledger rule); input is not part of est()'s caps.
-    return int(token_usage.get("output", 0)) + int(token_usage.get("thinking", 0))
-
-
-def _add_consumed(consumed: dict[str, Any], actual: Dims) -> dict[str, Any]:
-    return {
-        "tokens": int(consumed.get("tokens", 0)) + actual.tokens,
-        "usd": float(consumed.get("usd", 0.0)) + actual.usd,
-    }
 
 
 # --- the conductor ----------------------------------------------------------
@@ -279,24 +256,7 @@ class Conductor:
         try:
             envelopes = CodexAdapter(telemetry_path=self.review_telemetry_path).run_batch(nodes)
         except Exception as exc:
-            envelopes = [
-                ResultEnvelope(
-                    node_id=node.id,
-                    idempotency_key=node.idempotency_key,
-                    status="failed",
-                    error_class=ErrorClass.UNKNOWN,
-                    artifact={"crash": type(exc).__name__},
-                    stdout_ref=f"{type(exc).__name__}: {exc}",
-                    token_usage={
-                        "input": 0,
-                        "thinking": 0,
-                        "output": 0,
-                        "cached": 0,
-                        "accounting": "exact",
-                    },
-                )
-                for node in nodes
-            ]
+            envelopes = [adapter_crash_envelope(node, exc) for node in nodes]
 
         envelope_by_id = {envelope.node_id: envelope for envelope in envelopes}
         for node, runtime in prepared:
@@ -310,9 +270,14 @@ class Conductor:
                     artifact={"missing_batch_result": node.id},
                 )
             self._stamp(envelope, node, runtime)
-            actual = Dims(tokens=_billable(envelope.token_usage), usd=float(envelope.cost_usd))
-            self.ledger.commit(self.epoch.epoch_seq, node.id, actual, accounting="exact")
-            runtime.budget_consumed = _add_consumed(runtime.budget_consumed, actual)
+            actual = commit_actual_usage(
+                ledger=self.ledger,
+                epoch_seq=self.epoch.epoch_seq,
+                node_id=node.id,
+                runtime=runtime,
+                actual=actual_from_envelope(envelope),
+                accounting="exact",
+            )
             runtime.error_class = envelope.error_class
             if classify(envelope) is None:
                 self.scheduler.mark(node.id, NodeStatus.SUCCEEDED)
@@ -338,21 +303,13 @@ class Conductor:
         return True
 
     def _maybe_record_review_budget_alert(self, node: NodeSpec, actual: Dims) -> None:
-        if node.role not in ("reviewer", "closer") or actual.tokens <= 1000:
-            return
-        self.events.append(
-            {
-                "type": "review_budget_alert",
-                "node_id": node.id,
-                "role": node.role,
-                "spent_tokens": actual.tokens,
-                "threshold": 1000,
-                "warning": (
-                    f"Review role node '{node.id}' exceeded lightweight token guardrail "
-                    f"threshold (1000 tokens) with {actual.tokens} tokens."
-                ),
-            }
+        events, self.closer = review_budget_events(
+            node_id=node.id,
+            role=node.role,
+            spent_tokens=actual.tokens,
+            closer=self.closer,
         )
+        self.events.extend(events)
 
     def _check_drift(self) -> None:
         """AC-31: verify lockfile drift before any node runs (§D.5).
@@ -362,9 +319,7 @@ class Conductor:
         control-flow drift (model_pins/prompt_hashes), aborting before dispatch. Absent
         either lockfile, drift checking is skipped (a no-op for pre-built-graph runs).
         """
-        if self.lockfile is None or self.resolved_lockfile is None:
-            return
-        self._drift_records = check_drift(
+        self._drift_records = collect_drift_records(
             self.lockfile, self.resolved_lockfile, allow_drift=self.allow_drift
         )
 
@@ -402,42 +357,18 @@ class Conductor:
             runtime.attempt += 1
             envelope = self._run_node(node, runtime, reservation_id=admission.reservation_id)
             self._stamp(envelope, node, runtime)
-            actual = Dims(tokens=_billable(envelope.token_usage), usd=float(envelope.cost_usd))
             accounting = self.adapter.accounting
             if self.fallback_adapter is not None and envelope.adapter == self.fallback_adapter.name:
                 accounting = self.fallback_adapter.accounting
-            self.ledger.commit(self.epoch.epoch_seq, node.id, actual, accounting=accounting)
-            runtime.budget_consumed = _add_consumed(runtime.budget_consumed, actual)
-            if node.role in ("reviewer", "closer") and actual.tokens > 1000:
-                self.events.append(
-                    {
-                        "type": "review_budget_alert",
-                        "node_id": node.id,
-                        "role": node.role,
-                        "spent_tokens": actual.tokens,
-                        "threshold": 1000,
-                        "warning": (
-                            f"Review role node '{node.id}' exceeded lightweight token guardrail "
-                            f"threshold (1000 tokens) with {actual.tokens} tokens."
-                        ),
-                    }
-                )
-                if node.role == "reviewer" and self.closer in ("agy", "codex"):
-                    new_closer = "codex" if self.closer == "agy" else "off"
-                    self.events.append(
-                        {
-                            "type": "review_auto_triage",
-                            "node_id": node.id,
-                            "action": "downgrade_closer",
-                            "previous_closer": self.closer,
-                            "new_closer": new_closer,
-                            "warning": (
-                                f"Reviewer node '{node.id}' exceeded budget threshold. Closer adapter "
-                                f"downgraded from '{self.closer}' to '{new_closer}' to conserve remaining budget."
-                            ),
-                        }
-                    )
-                    self.closer = new_closer
+            actual = commit_actual_usage(
+                ledger=self.ledger,
+                epoch_seq=self.epoch.epoch_seq,
+                node_id=node.id,
+                runtime=runtime,
+                actual=actual_from_envelope(envelope),
+                accounting=accounting,
+            )
+            self._maybe_record_review_budget_alert(node, actual)
             runtime.error_class = envelope.error_class
             failure_class = classify(envelope)
             if failure_class is None:
@@ -511,24 +442,7 @@ class Conductor:
             # is NEVER model-fallback'd (a failing test is a verification result, not a model
             # failure). Exit code → artifact, stdout/stderr → stdout_ref (§D.2); dependents
             # transitively skip (FR-5.1).
-            outcome = self.command_runner(node.command or [])
-            ok = outcome.exit_code == 0
-            streams = (outcome.stdout or "") + (outcome.stderr or "")
-            return ResultEnvelope(
-                node_id=node.id,
-                idempotency_key=node.idempotency_key,
-                status="succeeded" if ok else "failed",
-                error_class=classify_exit(outcome),
-                artifact={"exit_code": outcome.exit_code, "command": list(node.command or [])},
-                stdout_ref=streams or None,
-                token_usage={
-                    "input": 0,
-                    "thinking": 0,
-                    "output": 0,
-                    "cached": 0,
-                    "accounting": "exact",
-                },
-            )
+            return run_command_node(node, self.command_runner(node.command or []))
 
         active_adapter = self.adapter
         if node.role not in ("reducer", "test", "verify"):
@@ -564,93 +478,13 @@ class Conductor:
                     )
 
         if node.role in ("reviewer", "closer"):
-            from .hybrid_review import route_review_role
-
-            adapter_name = self.reviewer if node.role == "reviewer" else self.closer
-            route = route_review_role(node.role, adapter=adapter_name)
-            if route.adapter == "agy":
-                try:
-                    return active_adapter.run(
-                        node, attempt=runtime.attempt, reservation_id=reservation_id
-                    )
-                except Exception as exc:
-                    return ResultEnvelope(
-                        node_id=node.id,
-                        idempotency_key=node.idempotency_key,
-                        status="failed",
-                        error_class=ErrorClass.UNKNOWN,
-                        artifact={"crash": type(exc).__name__},
-                        stdout_ref=f"{type(exc).__name__}: {exc}",
-                        token_usage={
-                            "input": 0,
-                            "thinking": 0,
-                            "output": 0,
-                            "cached": 0,
-                            "accounting": "exact",
-                        },
-                    )
-            elif route.adapter == "claude":
-                from .adapters.claude import ClaudeAdapter
-
-                try:
-                    return ClaudeAdapter().run(
-                        node, attempt=runtime.attempt, reservation_id=reservation_id
-                    )
-                except Exception as exc:
-                    return ResultEnvelope(
-                        node_id=node.id,
-                        idempotency_key=node.idempotency_key,
-                        status="failed",
-                        error_class=ErrorClass.UNKNOWN,
-                        artifact={"crash": type(exc).__name__},
-                        stdout_ref=f"{type(exc).__name__}: {exc}",
-                        token_usage={
-                            "input": 0,
-                            "thinking": 0,
-                            "output": 0,
-                            "cached": 0,
-                            "accounting": "exact",
-                        },
-                    )
-            elif route.adapter == "codex":
-                from .adapters.codex import CodexAdapter
-
-                try:
-                    return CodexAdapter(telemetry_path=self.review_telemetry_path).run(
-                        node, attempt=runtime.attempt, reservation_id=reservation_id
-                    )
-                except Exception as exc:
-                    return ResultEnvelope(
-                        node_id=node.id,
-                        idempotency_key=node.idempotency_key,
-                        status="failed",
-                        error_class=ErrorClass.UNKNOWN,
-                        artifact={"crash": type(exc).__name__},
-                        stdout_ref=f"{type(exc).__name__}: {exc}",
-                        token_usage={
-                            "input": 0,
-                            "thinking": 0,
-                            "output": 0,
-                            "cached": 0,
-                            "accounting": "exact",
-                        },
-                    )
-            return ResultEnvelope(
-                node_id=node.id,
-                idempotency_key=node.idempotency_key,
-                status="succeeded",
-                error_class=ErrorClass.NONE,
-                artifact={
-                    "route": route.to_json(),
-                    "commands_executed": False,
-                },
-                token_usage={
-                    "input": 0,
-                    "thinking": 0,
-                    "output": 0,
-                    "cached": 0,
-                    "accounting": "exact",
-                },
+            return run_review_node(
+                node,
+                active_adapter=active_adapter,
+                attempt=runtime.attempt,
+                reservation_id=reservation_id,
+                adapter_name=self.reviewer if node.role == "reviewer" else self.closer,
+                telemetry_path=self.review_telemetry_path,
             )
 
         # AC-38/NFR-8 containment: a worker adapter that RAISES is caught and turned into a
@@ -662,21 +496,7 @@ class Conductor:
         try:
             return active_adapter.run(node, attempt=runtime.attempt, reservation_id=reservation_id)
         except Exception as exc:
-            return ResultEnvelope(
-                node_id=node.id,
-                idempotency_key=node.idempotency_key,
-                status="failed",
-                error_class=ErrorClass.UNKNOWN,
-                artifact={"crash": type(exc).__name__},
-                stdout_ref=f"{type(exc).__name__}: {exc}",
-                token_usage={
-                    "input": 0,
-                    "thinking": 0,
-                    "output": 0,
-                    "cached": 0,
-                    "accounting": "exact",
-                },
-            )
+            return adapter_crash_envelope(node, exc)
 
     def _reserve(self, node: NodeSpec, runtime: Any) -> Any:
         accounting = self.adapter.accounting
@@ -719,11 +539,8 @@ class Conductor:
         """
         if node.role in ("reviewer", "closer"):
             current_adapter = self.reviewer if node.role == "reviewer" else self.closer
-            if current_adapter == "agy":
-                new_adapter = "codex"
-            elif current_adapter == "codex":
-                new_adapter = "off"
-            else:
+            new_adapter = next_review_fallback_adapter(current_adapter)
+            if new_adapter is None:
                 return None
 
             admission = self.ledger.reserve(
@@ -741,13 +558,12 @@ class Conductor:
                 return None
 
             self.events.append(
-                {
-                    "type": "model_switch",
-                    "node_id": node.id,
-                    "from": current_adapter,
-                    "to": new_adapter,
-                    "error_class": primary.error_class.value,
-                }
+                model_switch_event(
+                    node_id=node.id,
+                    from_adapter=current_adapter,
+                    to_adapter=new_adapter,
+                    error_class=primary.error_class,
+                )
             )
 
             if node.role == "reviewer":
@@ -755,54 +571,31 @@ class Conductor:
             else:
                 self.closer = new_adapter
 
-            runtime.attempt += 1
-            runtime.reservation_id = admission.reservation_id
-            envelope = self._run_node(node, runtime, reservation_id=admission.reservation_id)
-            self._stamp(envelope, node, runtime)
-            actual = Dims(tokens=_billable(envelope.token_usage), usd=float(envelope.cost_usd))
-            self.ledger.commit(
-                self.epoch.epoch_seq,
-                node.id,
-                actual,
+            fallback_run = execute_fallback_run(
+                node=node,
+                runtime=runtime,
+                admission=admission,
+                run=lambda node_arg, runtime_arg, reservation_id: self._run_node(
+                    node_arg, runtime_arg, reservation_id=reservation_id
+                ),
+                stamp=self._stamp,
+            )
+            envelope = fallback_run.envelope
+            actual = commit_actual_usage(
+                ledger=self.ledger,
+                epoch_seq=self.epoch.epoch_seq,
+                node_id=node.id,
+                runtime=runtime,
+                actual=fallback_run.actual,
                 accounting="exact",
             )
-            runtime.budget_consumed = _add_consumed(runtime.budget_consumed, actual)
-            if node.role in ("reviewer", "closer") and actual.tokens > 1000:
-                self.events.append(
-                    {
-                        "type": "review_budget_alert",
-                        "node_id": node.id,
-                        "role": node.role,
-                        "spent_tokens": actual.tokens,
-                        "threshold": 1000,
-                        "warning": (
-                            f"Review role node '{node.id}' exceeded lightweight token guardrail "
-                            f"threshold (1000 tokens) with {actual.tokens} tokens."
-                        ),
-                    }
-                )
-                if node.role == "reviewer" and self.closer in ("agy", "codex"):
-                    new_closer = "codex" if self.closer == "agy" else "off"
-                    self.events.append(
-                        {
-                            "type": "review_auto_triage",
-                            "node_id": node.id,
-                            "action": "downgrade_closer",
-                            "previous_closer": self.closer,
-                            "new_closer": new_closer,
-                            "warning": (
-                                f"Reviewer node '{node.id}' exceeded budget threshold. Closer adapter "
-                                f"downgraded from '{self.closer}' to '{new_closer}' to conserve remaining budget."
-                            ),
-                        }
-                    )
-                    self.closer = new_closer
-            runtime.error_class = envelope.error_class
+            self._maybe_record_review_budget_alert(node, actual)
             return envelope
 
         if self.fallback_adapter is None:
             return None
-        if not self.fallback_adapter.covers(node.required_capabilities):
+        fallback_adapter = self.fallback_adapter
+        if not fallback_adapter.covers(node.required_capabilities):
             self._add_blocker(
                 node.id, "fallback misses required capabilities", "fallback_uncovered"
             )
@@ -813,7 +606,7 @@ class Conductor:
             node,
             epoch_id=self.epoch.epoch_id,
             budget_consumed=_dims(runtime.budget_consumed),
-            accounting=self.fallback_adapter.accounting,
+            accounting=fallback_adapter.accounting,
         )
         if not admission.admitted:
             self._add_blocker(
@@ -821,59 +614,32 @@ class Conductor:
             )
             return None
         self.events.append(
-            {
-                "type": "model_switch",
-                "node_id": node.id,
-                "from": getattr(self.adapter, "name", "primary"),
-                "to": getattr(self.fallback_adapter, "name", "fallback"),
-                "error_class": primary.error_class.value,
-            }
-        )
-        runtime.attempt += 1
-        runtime.reservation_id = admission.reservation_id
-        envelope = self.fallback_adapter.run(
-            node, attempt=runtime.attempt, reservation_id=admission.reservation_id
-        )
-        self._stamp(envelope, node, runtime)
-        actual = Dims(tokens=_billable(envelope.token_usage), usd=float(envelope.cost_usd))
-        self.ledger.commit(
-            self.epoch.epoch_seq,
-            node.id,
-            actual,
-            accounting=self.fallback_adapter.accounting,
-        )
-        runtime.budget_consumed = _add_consumed(runtime.budget_consumed, actual)
-        if node.role in ("reviewer", "closer") and actual.tokens > 1000:
-            self.events.append(
-                {
-                    "type": "review_budget_alert",
-                    "node_id": node.id,
-                    "role": node.role,
-                    "spent_tokens": actual.tokens,
-                    "threshold": 1000,
-                    "warning": (
-                        f"Review role node '{node.id}' exceeded lightweight token guardrail "
-                        f"threshold (1000 tokens) with {actual.tokens} tokens."
-                    ),
-                }
+            model_switch_event(
+                node_id=node.id,
+                from_adapter=getattr(self.adapter, "name", "primary"),
+                to_adapter=getattr(fallback_adapter, "name", "fallback"),
+                error_class=primary.error_class,
             )
-            if node.role == "reviewer" and self.closer in ("agy", "codex"):
-                new_closer = "codex" if self.closer == "agy" else "off"
-                self.events.append(
-                    {
-                        "type": "review_auto_triage",
-                        "node_id": node.id,
-                        "action": "downgrade_closer",
-                        "previous_closer": self.closer,
-                        "new_closer": new_closer,
-                        "warning": (
-                            f"Reviewer node '{node.id}' exceeded budget threshold. Closer adapter "
-                            f"downgraded from '{self.closer}' to '{new_closer}' to conserve remaining budget."
-                        ),
-                    }
-                )
-                self.closer = new_closer
-        runtime.error_class = envelope.error_class
+        )
+        fallback_run = execute_fallback_run(
+            node=node,
+            runtime=runtime,
+            admission=admission,
+            run=lambda node_arg, runtime_arg, reservation_id: fallback_adapter.run(
+                node_arg, attempt=runtime_arg.attempt, reservation_id=reservation_id
+            ),
+            stamp=self._stamp,
+        )
+        envelope = fallback_run.envelope
+        actual = commit_actual_usage(
+            ledger=self.ledger,
+            epoch_seq=self.epoch.epoch_seq,
+            node_id=node.id,
+            runtime=runtime,
+            actual=fallback_run.actual,
+            accounting=fallback_adapter.accounting,
+        )
+        self._maybe_record_review_budget_alert(node, actual)
         return envelope
 
     # --- resume helpers (FR-7 / FR-30.1 / cross-resume monotonicity) -------
@@ -887,7 +653,9 @@ class Conductor:
         node seeds a clean attempt with the policy's full retry budget.
         """
         persisted = self.checkpoint.get_runtime(node.id) if self.checkpoint is not None else None
-        if persisted is not None and persisted.idempotency_key == node.idempotency_key:
+        if persisted is not None and persisted_runtime_matches(
+            persisted.idempotency_key, node.idempotency_key
+        ):
             runtime.budget_consumed = dict(persisted.budget_consumed)
             runtime.remaining_schema_retries = persisted.remaining_schema_retries
             runtime.attempt = persisted.attempt
@@ -901,28 +669,23 @@ class Conductor:
         if self.checkpoint is None:
             return None
         hit = self.checkpoint.lookup(node.idempotency_key)  # epoch-gated cache
-        if hit is None or hit.envelope is None:
-            return None
-        if hit.status not in (NodeStatus.SUCCEEDED.value, NodeStatus.FAILED.value):
+        envelope = cached_terminal_envelope(hit)
+        if hit is None or envelope is None:
             return None
         # FR-30.1: release any open reservation before emitting node-succeeded (no phantom).
         self.ledger.release(self.epoch.epoch_seq, node.id)
-        runtime.status = NodeStatus(hit.status)  # resume restore, not a live §D.1 edge
-        runtime.attempt = hit.attempt
-        runtime.remaining_schema_retries = hit.remaining_schema_retries
-        runtime.budget_consumed = dict(hit.budget_consumed)
-        runtime.error_class = hit.envelope.error_class
-        self.results[node.id] = hit.envelope
+        adopt_cached_runtime(runtime, hit)  # resume restore, not a live §D.1 edge
+        self.results[node.id] = envelope
         if hit.status == NodeStatus.FAILED.value:
-            self._add_blocker(node.id, "node failed (cached)", hit.envelope.error_class.value)
-        return hit.envelope
+            self._add_blocker(node.id, "node failed (cached)", envelope.error_class.value)
+        return envelope
 
     # --- checkpoint + report ------------------------------------------------
 
     def _checkpoint_barrier(self, batch: list[str]) -> None:
         if self.checkpoint is None:
             return
-        entries: list[JournalEntry] = []
+        entries = []
         for node_id in batch:
             runtime = self.runtime[node_id]
             envelope = self.results.get(node_id)
@@ -932,16 +695,8 @@ class Conductor:
             ):
                 continue  # only committed-terminal nodes are journaled
             entries.append(
-                JournalEntry(
-                    node_id=node_id,
-                    idempotency_key=self._by_id[node_id].idempotency_key,
-                    epoch_id=self.epoch.epoch_id,
-                    epoch_seq=self.epoch.epoch_seq,
-                    status=runtime.status.value,
-                    attempt=runtime.attempt,
-                    remaining_schema_retries=runtime.remaining_schema_retries,
-                    budget_consumed=dict(runtime.budget_consumed),
-                    envelope=envelope,
+                build_node_journal_entry(
+                    node_id, self._by_id[node_id], runtime, envelope, self.epoch
                 )
             )
         if entries:
@@ -957,7 +712,7 @@ class Conductor:
             blockers=list(self.blockers),
             spent_tokens=self.ledger.spent.tokens,
             spent_usd=self.ledger.spent.usd,
-            drift_records=list(self._drift_records),
+            drift_records=report_drift_records(self._drift_records),
         )
 
     # --- shared utilities ---------------------------------------------------
@@ -994,81 +749,32 @@ class Conductor:
         """Stream ``items`` through ``stages`` independently, journaling each completed
         stage. Items keep input order; a failing stage isolates only its item (FR-5.1
         analog); a resumed item re-runs from its first uncommitted stage (FR-7)."""
-        return [
-            self._run_pipeline_item(pipeline_id, index, item, stages)
-            for index, item in enumerate(items)
-        ]
-
-    def _run_pipeline_item(
-        self,
-        pipeline_id: str,
-        index: int,
-        item: Any,
-        stages: list[Callable[[Any, dict[str, Any] | None], ResultEnvelope]],
-    ) -> PipelineItemResult:
-        prev: dict[str, Any] | None = None
-        completed = 0
-        final_env: ResultEnvelope | None = None
-        for stage_idx, stage in enumerate(stages):
-            key = self._pipeline_key(pipeline_id, index, stage_idx, len(stages))
-            cached = self._pipeline_cache_lookup(key)
-            if cached is not None:  # stage already committed pre-crash → skip (FR-7)
-                final_env, prev, completed = cached, cached.artifact, completed + 1
-                continue
-            envelope = stage(item, prev)
-            envelope.node_id = f"{pipeline_id}:{index}:{stage_idx}"
-            envelope.idempotency_key = key
-            if classify(envelope) is not None:  # this item fails; the others continue
-                blocker = {
-                    "id": str(item),
-                    "what": f"pipeline stage {stage_idx} failed",
-                    "needs": envelope.error_class.value,
-                }
-                self.blockers.append(blocker)
-                return PipelineItemResult(
-                    item=item,
-                    status="failed",
-                    envelope=envelope,
-                    stages_completed=completed,
-                    blocker=blocker,
-                )
-            final_env, prev, completed = envelope, envelope.artifact, completed + 1
-            self._pipeline_journal(key, envelope)
-        return PipelineItemResult(
-            item=item,
-            status="succeeded",
-            envelope=final_env,
-            stages_completed=completed,
-            blocker=None,
-        )
+        results = []
+        for index, item in enumerate(items):
+            result = run_pipeline_item(
+                pipeline_id=pipeline_id,
+                index=index,
+                item=item,
+                stages=stages,
+                pipeline_key=self._pipeline_key,
+                cache_lookup=self._pipeline_cache_lookup,
+                journal=self._pipeline_journal,
+                classify_envelope=classify,
+            )
+            if result.blocker is not None:
+                self.blockers.append(result.blocker)
+            results.append(result)
+        return results
 
     def _pipeline_key(self, pipeline_id: str, index: int, stage_idx: int, n_stages: int) -> str:
-        # Folds epoch_id so a checkpoint-epoch bump cold-busts the pipeline cache too.
-        return sha256_hex(canonical([pipeline_id, index, stage_idx, n_stages, self.epoch.epoch_id]))
+        return pipeline_stage_key(pipeline_id, index, stage_idx, n_stages, self.epoch.epoch_id)
 
     def _pipeline_cache_lookup(self, key: str) -> ResultEnvelope | None:
         if self.checkpoint is None:
             return None
-        hit = self.checkpoint.lookup(key)
-        if hit is None or hit.envelope is None or hit.status != NodeStatus.SUCCEEDED.value:
-            return None
-        return hit.envelope
+        return cached_success_envelope(self.checkpoint.lookup(key))
 
     def _pipeline_journal(self, key: str, envelope: ResultEnvelope) -> None:
         if self.checkpoint is None:
             return
-        self.checkpoint.commit_barrier(
-            [
-                JournalEntry(
-                    node_id=envelope.node_id,
-                    idempotency_key=key,
-                    epoch_id=self.epoch.epoch_id,
-                    epoch_seq=self.epoch.epoch_seq,
-                    status=NodeStatus.SUCCEEDED.value,
-                    attempt=1,
-                    remaining_schema_retries=0,
-                    budget_consumed={"tokens": 0, "usd": 0.0},
-                    envelope=envelope,
-                )
-            ]
-        )
+        self.checkpoint.commit_barrier([build_pipeline_journal_entry(key, envelope, self.epoch)])

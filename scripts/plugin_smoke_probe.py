@@ -7,11 +7,34 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+
+PLUGIN_INSTALL_EXCLUDES = (
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+)
 
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
+
+
+def prepare_install_source(repo_root: Path, parent: Path) -> Path:
+    """Create a sparse plugin source tree without generated dependency/cache directories."""
+    install_source = parent / "agy-swarms-plugin-source"
+    shutil.copytree(
+        repo_root,
+        install_source,
+        ignore=shutil.ignore_patterns(*PLUGIN_INSTALL_EXCLUDES),
+    )
+    return install_source
 
 
 def run_command(cmd: list[str]) -> subprocess.CompletedProcess[str]:
@@ -30,25 +53,28 @@ def main() -> int:
         print("Warning: 'agy' CLI not found in PATH. Skipping plugin smoke check.")
         return 0
 
-    repo_root = str(_repo_root())
+    with tempfile.TemporaryDirectory(prefix="agy-plugin-smoke-") as tmp:
+        repo_root = _repo_root()
+        install_source = prepare_install_source(repo_root, Path(tmp))
+        install_source_str = str(install_source)
 
-    # 1. Validate plugin
-    print(f"Step 1: Validating plugin at {repo_root}...")
-    res = run_command(["agy", "plugin", "validate", repo_root])
-    if res.returncode != 0:
-        print("Error: Plugin validation failed.")
-        print(res.stderr)
-        return 1
-    print("[OK] Plugin validation succeeded.")
+        # 1. Validate plugin
+        print(f"Step 1: Validating plugin at {install_source_str}...")
+        res = run_command(["agy", "plugin", "validate", install_source_str])
+        if res.returncode != 0:
+            print("Error: Plugin validation failed.")
+            print(res.stderr)
+            return 1
+        print("[OK] Plugin validation succeeded.")
 
-    # 2. Install plugin
-    print("Step 2: Installing plugin...")
-    res = run_command(["agy", "plugin", "install", repo_root])
-    if res.returncode != 0:
-        print("Error: Plugin installation failed.")
-        print(res.stderr)
-        return 1
-    print("[OK] Plugin installation succeeded.")
+        # 2. Install plugin
+        print("Step 2: Installing plugin...")
+        res = run_command(["agy", "plugin", "install", install_source_str])
+        if res.returncode != 0:
+            print("Error: Plugin installation failed.")
+            print(res.stderr)
+            return 1
+        print("[OK] Plugin installation succeeded.")
 
     # 3. List plugins and assert presence
     print("Step 3: Verifying plugin is listed...")

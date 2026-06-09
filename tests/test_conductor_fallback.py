@@ -13,20 +13,15 @@ from agy_swarms.budget import Dims
 from agy_swarms.conductor import Conductor
 from agy_swarms.types import (
     Caps,
-    Epoch,
     ErrorClass,
     NodeSpec,
     NodeStatus,
     RetryPolicy,
     RunStatus,
-    TaskGraph,
 )
-
-_LIMIT = Dims(tokens=1_000_000, usd=1000.0)
-
-
-def _epoch(epoch_id="E1", seq=1):
-    return Epoch(epoch_seq=seq, epoch_id=epoch_id)
+from tests.conductor_support import LIMIT as _LIMIT
+from tests.conductor_support import epoch as _epoch
+from tests.conductor_support import single_graph as _single
 
 
 class CountingScripted(ScriptedAdapter):
@@ -42,10 +37,6 @@ class CountingScripted(ScriptedAdapter):
     def run(self, node, *, attempt=0, reservation_id=None):
         self.calls.append(node.id)
         return super().run(node, attempt=attempt, reservation_id=reservation_id)
-
-
-def _single(node):
-    return TaskGraph(nodes=[node], edges=[])
 
 
 def _deterministic_fail():

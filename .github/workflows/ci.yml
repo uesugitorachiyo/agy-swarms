@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  verify:
-    name: Verify Codebase (${{ matrix.os }})
+  fast-checks:
+    name: Fast Checks (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -30,20 +30,78 @@ jobs:
         uses: astral-sh/setup-uv@v8.1.0
         with:
           enable-cache: true
+          cache-dependency-glob: uv.lock
           version: "latest"
 
       - name: Install Dependencies
         run: |
-          uv sync --extra dev
+          uv sync --extra dev --extra gemini
 
-      - name: Run Ruff Lints
+      - name: Run Fast Verification
         run: |
-          uv run ruff check .
+          make verify-fast
 
-      - name: Run Unit Tests
-        run: |
-          uv run pytest -q
+  package-install-modes:
+    name: Verify Package Install Modes
+    runs-on: ubuntu-latest
+    env:
+      PYTHONIOENCODING: utf-8
 
-      - name: Build Package
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+          version: "latest"
+
+      - name: Verify Core Install
         run: |
-          uv build
+          uv venv .venv-core
+          uv pip install --python .venv-core/bin/python .
+          .venv-core/bin/python -c "from agy_swarms.adapters.scripted import ScriptedAdapter; print(ScriptedAdapter.accounting)"
+
+      - name: Verify Gemini Extra Install
+        run: |
+          uv venv .venv-gemini
+          uv pip install --python .venv-gemini/bin/python '.[gemini]'
+          .venv-gemini/bin/python -c "from agy_swarms.adapters.gemini_api import GeminiApiAdapter; print(GeminiApiAdapter.accounting)"
+
+  release-health:
+    name: Release Health
+    runs-on: ubuntu-latest
+    needs: fast-checks
+    env:
+      PYTHONIOENCODING: utf-8
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+          version: "latest"
+
+      - name: Install Dependencies
+        run: |
+          uv sync --extra dev --extra gemini
+
+      - name: Run Release Health
+        run: |
+          make release-health

@@ -57,8 +57,7 @@ def resolve_codex_model_config(
     source = env if env is not None else os.environ
     role_prefix = "CLOSER" if role == "closer" else "REVIEWER"
     model = (
-        source.get(f"AGY_CODEX_{role_prefix}_MODEL")
-        or source.get("AGY_CODEX_ESCALATED_MODEL")
+        source.get(f"AGY_CODEX_{role_prefix}_MODEL") or source.get("AGY_CODEX_ESCALATED_MODEL")
         if escalated
         else None
     )
@@ -405,9 +404,7 @@ class CodexAdapter:
             return envelopes
 
     def _config_for_node(self, node: NodeSpec) -> CodexModelConfig:
-        resolved = resolve_codex_model_config(
-            node.role, escalated=self.escalated, env=self.env
-        )
+        resolved = resolve_codex_model_config(node.role, escalated=self.escalated, env=self.env)
         return CodexModelConfig(
             model=self.model_override or resolved.model,
             reasoning_effort=self.reasoning_effort_override or resolved.reasoning_effort,

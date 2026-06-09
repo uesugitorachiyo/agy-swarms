@@ -71,9 +71,7 @@ def test_codex_reviewer_schema_requires_file_scoped_findings(tmp_path: Path):
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         assert "findings" in schema["properties"]
         finding_props = schema["properties"]["findings"]["items"]["properties"]
-        assert {"file", "line", "severity", "message", "suggested_action"} <= set(
-            finding_props
-        )
+        assert {"file", "line", "severity", "message", "suggested_action"} <= set(finding_props)
         prompt = cmd[-1]
         assert "Find concrete bugs, regressions, missing tests, and behavioral risks." in prompt
 

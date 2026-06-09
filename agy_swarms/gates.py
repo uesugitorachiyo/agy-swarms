@@ -19,11 +19,10 @@ is the enforcement *mechanism* plus the planted-impure-gate guard.
 from __future__ import annotations
 
 import socket
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
-from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, cast
 
 from .canonical import canonical
 
@@ -120,7 +119,7 @@ def _hermetic_network_guard(contract: Contract, *, gate_id: str) -> Iterator[Non
 
     def _guarded_create_connection(
         address: Any,
-        timeout: float | object = socket._GLOBAL_DEFAULT_TIMEOUT,
+        timeout: float | None = None,
         source_address: Any | None = None,
         *,
         all_errors: bool = False,
@@ -133,7 +132,7 @@ def _hermetic_network_guard(contract: Contract, *, gate_id: str) -> Iterator[Non
             )
         return _FakeSocket(host=host, port=port)
 
-    socket.create_connection = _guarded_create_connection
+    socket.create_connection = cast(Any, _guarded_create_connection)
     try:
         yield
     finally:

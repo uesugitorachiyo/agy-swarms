@@ -25,13 +25,13 @@ and replayable evidence stay in code.
 Use `uv` from a fresh checkout:
 
 ```bash
-uv sync --extra dev
+uv sync --extra dev --extra gemini
 ```
 
 Run the test suite:
 
 ```bash
-uv run pytest -q
+uv run python -m pytest -q
 ```
 
 Run the CLI:
@@ -76,7 +76,8 @@ The public CI path is intentionally local and deterministic:
 
 ```bash
 uv run ruff check .
-uv run pytest -q
+uv run ruff format --check .
+uv run python -m pytest -q
 uv build
 ```
 
@@ -86,7 +87,8 @@ workflow. It uses a `workflow_dispatch` matrix across `ubuntu-latest`,
 
 Additional release verification notes live in
 [docs/release-verification.md](docs/release-verification.md). Version policy
-notes live in [docs/versioning.md](docs/versioning.md).
+notes live in [docs/versioning.md](docs/versioning.md). Architecture boundaries
+are summarized in [docs/architecture.md](docs/architecture.md).
 
 ## Safety Model
 

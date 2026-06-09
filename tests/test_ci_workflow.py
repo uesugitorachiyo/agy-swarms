@@ -30,7 +30,43 @@ def test_ci_workflow_runs_linux_macos_and_windows_matrix():
 def test_ci_workflow_verifies_lint_tests_and_package_build():
     workflow = _workflow_text()
 
-    assert "uv run ruff check ." in workflow
-    assert "uv run pytest -q" in workflow
-    assert "uv build" in workflow
+    assert "uv sync --extra dev --extra gemini" in workflow
+    assert "uv sync --extra dev\n" not in workflow
+    assert "uv run pytest -q" not in workflow
     assert "PYTHONIOENCODING: utf-8" in workflow
+    assert "fast-checks:" in workflow
+    assert "Run Fast Verification" in workflow
+    assert "make verify-fast" in workflow
+
+
+def test_ci_workflow_verifies_package_install_modes():
+    workflow = _workflow_text()
+
+    assert "package-install-modes:" in workflow
+    assert "uv pip install --python .venv-core/bin/python ." in workflow
+    assert "uv pip install --python .venv-gemini/bin/python '.[gemini]'" in workflow
+    assert "from agy_swarms.adapters.scripted import ScriptedAdapter" in workflow
+    assert "from agy_swarms.adapters.gemini_api import GeminiApiAdapter" in workflow
+
+
+def test_ci_workflow_checks_release_docs_probe_drift():
+    workflow = _workflow_text()
+
+    assert "make verify-fast" in workflow
+    assert "make release-health" in workflow
+
+
+def test_ci_workflow_runs_make_verify_facade():
+    workflow = _workflow_text()
+
+    assert "release-health:" in workflow
+    assert "needs: fast-checks" in workflow
+    assert "Run Release Health" in workflow
+    assert "make release-health" in workflow
+
+
+def test_ci_workflow_caches_uv_from_lockfile():
+    workflow = _workflow_text()
+
+    assert "enable-cache: true" in workflow
+    assert "cache-dependency-glob: uv.lock" in workflow

@@ -72,7 +72,7 @@ def build_head_to_head_report(
     Cache stability is recorded but non-blocking (soft gate).
     Reported-only comparands cannot flip a failing gate to passing.
     """
-    gates = (
+    gates: tuple[Phase5GateResult, ...] = (
         Phase5GateResult(
             gate_id="M1",
             status=m1_status,

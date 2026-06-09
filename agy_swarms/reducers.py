@@ -82,6 +82,8 @@ def _apply(
                     merged[key] = value
         return ReduceResult(artifact=merged, concerns=concerns)
     if reducer.kind == "custom":
+        if reducer.custom_id is None:
+            raise ReducerError("custom reducer requires custom_id")
         try:
             fn = registry[reducer.custom_id]  # validated at validate_or_die (§D.1)
         except KeyError:

@@ -65,5 +65,7 @@ def _is_reviewer_concern_closer_pass(primary: ReviewVerdict, secondary: ReviewVe
         and (item.verdict.casefold() in _CONCERN_VERDICTS or bool(item.concerns))
         for item in verdicts
     )
-    closer_passed = any(item.role == "closer" and item.verdict.casefold() == "pass" for item in verdicts)
+    closer_passed = any(
+        item.role == "closer" and item.verdict.casefold() == "pass" for item in verdicts
+    )
     return reviewer_has_concern and closer_passed
