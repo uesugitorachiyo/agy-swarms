@@ -86,6 +86,9 @@ pull requests and pushes to `main`. The workflow keeps `workflow_dispatch`
 enabled for manual reruns and uses a matrix across `ubuntu-latest`,
 `macos-latest`, and `windows-latest`.
 
+GitHub Release publishing runs from version tags matching `v*` and attaches the
+wheel plus source distribution built from the tagged commit.
+
 Additional release verification notes live in
 [docs/release-verification.md](docs/release-verification.md). Version policy
 notes live in [docs/versioning.md](docs/versioning.md). Required hosted merge

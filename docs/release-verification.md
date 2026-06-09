@@ -90,6 +90,25 @@ The workflow sets `PYTHONIOENCODING=utf-8` and the release health output uses
 ASCII status markers (`[OK]` / `[FAIL]`) so Windows CP1252/charmap terminals do
 not fail on status output.
 
+## GitHub Release publishing
+
+`.github/workflows/release.yml` publishes GitHub Release artifacts for version
+tags matching `v*`. The workflow can also be rerun manually with
+`workflow_dispatch` by providing an existing tag, such as `v0.5.3`.
+
+Before publishing, the workflow checks out the tag, installs the development and
+Gemini extras, verifies that the tag matches the `pyproject.toml` package
+version, and runs:
+
+```bash
+make verify
+```
+
+It then rebuilds the package artifacts with `uv build` and attaches both
+`dist/*.whl` and `dist/*.tar.gz` to the GitHub Release using generated release
+notes. This workflow publishes only GitHub Releases; it does not publish to
+PyPI or any package index.
+
 ## Local runner report evidence
 
 For billing-free local runner reports, inspect saved JSON evidence without

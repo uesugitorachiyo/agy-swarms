@@ -33,4 +33,4 @@ verify-fast: disk-preflight lint format-check type-check verify-docs test build
 verify: verify-fast release-health
 
 pr-verification:
-	uv run python scripts/pr_verification.py --pr "$${PR_NUMBER:?set PR_NUMBER}" --pytest-count "$${PYTEST_COUNT:-727}" --mypy-files "$${MYPY_FILES:-96}" --release-health-passed "$${RELEASE_HEALTH_PASSED:-24}" --release-health-total "$${RELEASE_HEALTH_TOTAL:-24}"
+	uv run python scripts/pr_verification.py --pr "$${PR_NUMBER:?set PR_NUMBER}" --pytest-count "$${PYTEST_COUNT:-730}" --mypy-files "$${MYPY_FILES:-96}" --release-health-passed "$${RELEASE_HEALTH_PASSED:-24}" --release-health-total "$${RELEASE_HEALTH_TOTAL:-24}"
