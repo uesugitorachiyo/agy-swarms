@@ -10,6 +10,8 @@ All notable release-engineering milestones for this repository are recorded here
   distribution artifacts.
 - Pinned Windows CI to `windows-2025` and updated the required merge check name
   to avoid the floating `windows-latest` runner redirect.
+- Added workflow concurrency and uv cache-save policy to cancel superseded pull
+  request CI runs while preserving `main` and release evidence.
 
 ## v0.5.3 - 2026-06-09
 

@@ -96,6 +96,26 @@ def test_ci_workflow_caches_uv_from_lockfile():
     assert "cache-dependency-glob: uv.lock" in workflow
 
 
+def test_ci_workflow_cancels_superseded_pull_request_runs_only():
+    workflow = _workflow_text()
+
+    assert "concurrency:" in workflow
+    assert (
+        "group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}"
+        in workflow
+    )
+    assert "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in workflow
+
+
+def test_ci_workflow_uses_distinct_uv_cache_suffixes_and_saves_only_on_main():
+    workflow = _workflow_text()
+
+    assert "cache-suffix: ci-fast-${{ matrix.os }}" in workflow
+    assert "cache-suffix: ci-package-install" in workflow
+    assert "cache-suffix: ci-release-health" in workflow
+    assert workflow.count("save-cache: ${{ github.ref == 'refs/heads/main' }}") == 3
+
+
 def test_main_branch_protection_requires_ci_status_checks():
     policy = _branch_protection_policy()
     main = policy["branches"]["main"]
@@ -160,6 +180,18 @@ def test_release_workflow_verifies_and_attaches_package_artifacts():
     assert "--verify-tag" in workflow
 
 
+def test_release_workflow_serializes_publishing_by_tag_and_does_not_write_cache():
+    workflow = _release_workflow_text()
+
+    assert (
+        "group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
+        in workflow
+    )
+    assert "cancel-in-progress: false" in workflow
+    assert "cache-suffix: release" in workflow
+    assert "save-cache: false" in workflow
+
+
 def test_release_docs_explain_github_release_publishing():
     docs = RELEASE_DOC.read_text(encoding="utf-8")
 
@@ -168,3 +200,12 @@ def test_release_docs_explain_github_release_publishing():
     assert "`v*`" in docs
     assert "dist/*.whl" in docs
     assert "dist/*.tar.gz" in docs
+
+
+def test_release_docs_explain_concurrency_and_cache_policy():
+    docs = RELEASE_DOC.read_text(encoding="utf-8")
+
+    assert "cancels superseded pull request runs" in docs
+    assert "does not cancel `main` push runs" in docs
+    assert "distinct `setup-uv` cache suffixes" in docs
+    assert "release workflow serializes publishing per tag" in docs

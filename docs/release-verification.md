@@ -94,6 +94,12 @@ The Windows matrix leg is pinned to `windows-2025` instead of `windows-latest`
 so hosted verification does not change when GitHub retargets the floating
 Windows label.
 
+The CI workflow uses a concurrency group per workflow and pull request or ref.
+It cancels superseded pull request runs for faster feedback, but does not cancel `main` push runs so post-merge release evidence can finish. The `setup-uv`
+steps use distinct `setup-uv` cache suffixes for fast checks, package install
+checks, and release health. Pull request runs restore caches but do not save new
+cache entries; only `main` runs save CI caches.
+
 ## GitHub Release publishing
 
 `.github/workflows/release.yml` publishes GitHub Release artifacts for version
@@ -112,6 +118,10 @@ It then rebuilds the package artifacts with `uv build` and attaches both
 `dist/*.whl` and `dist/*.tar.gz` to the GitHub Release using generated release
 notes. This workflow publishes only GitHub Releases; it does not publish to
 PyPI or any package index.
+
+The release workflow serializes publishing per tag and does not cancel an
+in-progress release publication. It restores the uv cache when available but
+does not write tag-specific cache entries.
 
 ## Local runner report evidence
 

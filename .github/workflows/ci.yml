@@ -9,6 +9,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   fast-checks:
     name: Fast Checks (${{ matrix.os }})
@@ -37,6 +41,8 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
+          cache-suffix: ci-fast-${{ matrix.os }}
+          save-cache: ${{ github.ref == 'refs/heads/main' }}
           version: "latest"
 
       - name: Install Dependencies
@@ -67,6 +73,8 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
+          cache-suffix: ci-package-install
+          save-cache: ${{ github.ref == 'refs/heads/main' }}
           version: "latest"
 
       - name: Verify Core Install
@@ -102,6 +110,8 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
+          cache-suffix: ci-release-health
+          save-cache: ${{ github.ref == 'refs/heads/main' }}
           version: "latest"
 
       - name: Install Dependencies
