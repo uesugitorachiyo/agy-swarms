@@ -1,12 +1,27 @@
+import json
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
+BRANCH_PROTECTION = ROOT / ".github" / "branch-protection.json"
+BRANCH_PROTECTION_DOC = ROOT / "docs" / "branch-protection.md"
+
+REQUIRED_MAIN_STATUS_CHECKS = [
+    "Fast Checks (ubuntu-latest)",
+    "Fast Checks (macos-latest)",
+    "Fast Checks (windows-latest)",
+    "Verify Package Install Modes",
+    "Release Health",
+]
 
 
 def _workflow_text() -> str:
     return WORKFLOW.read_text(encoding="utf-8")
+
+
+def _branch_protection_policy() -> dict:
+    return json.loads(BRANCH_PROTECTION.read_text(encoding="utf-8"))
 
 
 def test_ci_workflow_runs_on_pull_requests_pushes_to_main_and_manual_dispatch():
@@ -72,3 +87,40 @@ def test_ci_workflow_caches_uv_from_lockfile():
 
     assert "enable-cache: true" in workflow
     assert "cache-dependency-glob: uv.lock" in workflow
+
+
+def test_main_branch_protection_requires_ci_status_checks():
+    policy = _branch_protection_policy()
+    main = policy["branches"]["main"]
+
+    assert main["required_status_checks"]["strict"] is True
+    assert main["required_status_checks"]["contexts"] == REQUIRED_MAIN_STATUS_CHECKS
+    assert main["allow_force_pushes"] is False
+    assert main["allow_deletions"] is False
+
+
+def test_branch_protection_policy_matches_ci_workflow_job_names():
+    workflow = _workflow_text()
+    policy = _branch_protection_policy()
+    required_checks = policy["branches"]["main"]["required_status_checks"]["contexts"]
+
+    for check in required_checks:
+        if check.startswith("Fast Checks ("):
+            os_name = check.removeprefix("Fast Checks (").removesuffix(")")
+            assert "name: Fast Checks (${{ matrix.os }})" in workflow
+            assert f"- {os_name}" in workflow
+        else:
+            assert f"name: {check}" in workflow
+
+
+def test_branch_protection_docs_record_required_merge_gate():
+    policy = _branch_protection_policy()
+    docs = BRANCH_PROTECTION_DOC.read_text(encoding="utf-8")
+
+    assert ".github/branch-protection.json" in docs
+    assert "Require branches to be up to date before merging" in docs
+    assert "at least 1 approving review" in docs
+    assert "block force pushes and branch deletion" in docs
+
+    for check in policy["branches"]["main"]["required_status_checks"]["contexts"]:
+        assert check in docs

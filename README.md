@@ -88,7 +88,9 @@ enabled for manual reruns and uses a matrix across `ubuntu-latest`,
 
 Additional release verification notes live in
 [docs/release-verification.md](docs/release-verification.md). Version policy
-notes live in [docs/versioning.md](docs/versioning.md). Architecture boundaries
+notes live in [docs/versioning.md](docs/versioning.md). Required hosted merge
+checks are recorded in
+[docs/branch-protection.md](docs/branch-protection.md). Architecture boundaries
 are summarized in [docs/architecture.md](docs/architecture.md).
 
 ## Safety Model
