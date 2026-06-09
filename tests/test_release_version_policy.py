@@ -5,6 +5,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+RELEASE_CHECKLIST = ROOT / "docs" / "release-operator-checklist.md"
 
 
 def test_changelog_records_frozen_ac0_ac6_and_v050_release():
@@ -78,3 +79,30 @@ def test_release_docs_explain_cross_platform_verification():
     assert "workflow_dispatch" in release_docs
     assert "uv build" in release_docs
     assert "uv build" in readme
+
+
+def test_release_operator_checklist_covers_end_to_end_release_flow():
+    checklist = RELEASE_CHECKLIST.read_text(encoding="utf-8")
+
+    assert "Release Operator Checklist" in checklist
+    assert "pyproject.toml" in checklist
+    assert "uv.lock" in checklist
+    assert "CHANGELOG.md" in checklist
+    assert "make verify" in checklist
+    assert "gh pr checks" in checklist
+    assert "git tag -a" in checklist
+    assert "git push origin" in checklist
+    assert "gh workflow run release.yml" in checklist
+    assert "gh release view" in checklist
+    assert "agy_swarms-<version>-py3-none-any.whl" in checklist
+    assert "agy_swarms-<version>.tar.gz" in checklist
+
+
+def test_release_policy_links_operator_checklist():
+    policy = (ROOT / "docs" / "versioning.md").read_text(encoding="utf-8")
+    release_docs = (ROOT / "docs" / "release-verification.md").read_text(encoding="utf-8")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert "docs/release-operator-checklist.md" in policy
+    assert "docs/release-operator-checklist.md" in release_docs
+    assert "docs/release-operator-checklist.md" in readme

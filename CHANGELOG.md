@@ -12,6 +12,8 @@ All notable release-engineering milestones for this repository are recorded here
   to avoid the floating `windows-latest` runner redirect.
 - Added workflow concurrency and uv cache-save policy to cancel superseded pull
   request CI runs while preserving `main` and release evidence.
+- Added a release operator checklist covering version bump, changelog, tag,
+  GitHub Release publication, and verification evidence.
 
 ## v0.5.3 - 2026-06-09
 

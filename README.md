@@ -91,8 +91,10 @@ wheel plus source distribution built from the tagged commit.
 
 Additional release verification notes live in
 [docs/release-verification.md](docs/release-verification.md). Version policy
-notes live in [docs/versioning.md](docs/versioning.md). Required hosted merge
-checks are recorded in
+notes live in [docs/versioning.md](docs/versioning.md). The release operator
+checklist lives in
+[docs/release-operator-checklist.md](docs/release-operator-checklist.md).
+Required hosted merge checks are recorded in
 [docs/branch-protection.md](docs/branch-protection.md). Architecture boundaries
 are summarized in [docs/architecture.md](docs/architecture.md).
 
