@@ -30,7 +30,36 @@ def test_ci_workflow_runs_linux_macos_and_windows_matrix():
 def test_ci_workflow_verifies_lint_tests_and_package_build():
     workflow = _workflow_text()
 
+    assert "uv sync --extra dev --extra gemini" in workflow
+    assert "uv sync --extra dev\n" not in workflow
     assert "uv run ruff check ." in workflow
-    assert "uv run pytest -q" in workflow
+    assert "uv run ruff format --check ." in workflow
+    assert "uv run python -m pytest -q" in workflow
+    assert "uv run pytest -q" not in workflow
     assert "uv build" in workflow
     assert "PYTHONIOENCODING: utf-8" in workflow
+
+
+def test_ci_workflow_verifies_package_install_modes():
+    workflow = _workflow_text()
+
+    assert "package-install-modes:" in workflow
+    assert "uv pip install --python .venv-core/bin/python ." in workflow
+    assert "uv pip install --python .venv-gemini/bin/python '.[gemini]'" in workflow
+    assert "from agy_swarms.adapters.scripted import ScriptedAdapter" in workflow
+    assert "from agy_swarms.adapters.gemini_api import GeminiApiAdapter" in workflow
+
+
+def test_ci_workflow_checks_release_docs_probe_drift():
+    workflow = _workflow_text()
+
+    assert "uv run python scripts/rewrite_release_health_docs.py" in workflow
+    assert "git diff --exit-code docs/release-verification.md" in workflow
+
+
+def test_ci_workflow_runs_make_verify_facade():
+    workflow = _workflow_text()
+
+    assert "make-verify:" in workflow
+    assert "Run Make Verify" in workflow
+    assert "make verify" in workflow

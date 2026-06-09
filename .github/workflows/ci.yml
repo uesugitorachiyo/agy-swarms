@@ -34,16 +34,87 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          uv sync --extra dev
+          uv sync --extra dev --extra gemini
 
       - name: Run Ruff Lints
         run: |
           uv run ruff check .
 
+      - name: Run Ruff Format Check
+        run: |
+          uv run ruff format --check .
+
       - name: Run Unit Tests
         run: |
-          uv run pytest -q
+          uv run python -m pytest -q
+
+      - name: Check Release Docs Probe List
+        run: |
+          uv run python scripts/rewrite_release_health_docs.py
+          git diff --exit-code docs/release-verification.md
 
       - name: Build Package
         run: |
           uv build
+
+  package-install-modes:
+    name: Verify Package Install Modes
+    runs-on: ubuntu-latest
+    env:
+      PYTHONIOENCODING: utf-8
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+          version: "latest"
+
+      - name: Verify Core Install
+        run: |
+          uv venv .venv-core
+          uv pip install --python .venv-core/bin/python .
+          .venv-core/bin/python -c "from agy_swarms.adapters.scripted import ScriptedAdapter; print(ScriptedAdapter.accounting)"
+
+      - name: Verify Gemini Extra Install
+        run: |
+          uv venv .venv-gemini
+          uv pip install --python .venv-gemini/bin/python '.[gemini]'
+          .venv-gemini/bin/python -c "from agy_swarms.adapters.gemini_api import GeminiApiAdapter; print(GeminiApiAdapter.accounting)"
+
+  make-verify:
+    name: Verify Make Facade
+    runs-on: ubuntu-latest
+    env:
+      PYTHONIOENCODING: utf-8
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+          version: "latest"
+
+      - name: Install Dependencies
+        run: |
+          uv sync --extra dev --extra gemini
+
+      - name: Run Make Verify
+        run: |
+          make verify

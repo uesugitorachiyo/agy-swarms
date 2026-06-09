@@ -69,9 +69,7 @@ def summarize_review_telemetry(path: str | Path) -> dict[str, Any]:
 
     for bucket in by_source.values():
         denom = bucket["confirmed_blocks"] + bucket["false_blocks"]
-        bucket["block_precision"] = (
-            bucket["confirmed_blocks"] / denom if denom else None
-        )
+        bucket["block_precision"] = bucket["confirmed_blocks"] / denom if denom else None
 
     return {"total": len(records), "by_source": by_source}
 

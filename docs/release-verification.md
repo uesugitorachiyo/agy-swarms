@@ -18,7 +18,7 @@ running verification commands:
 
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
-uv run pytest -q
+uv run python -m pytest -q
 uv run python scripts/release_health.py
 ```
 
@@ -38,9 +38,10 @@ workflow verifies the same deterministic path on:
 Each matrix job runs:
 
 ```bash
-uv sync --extra dev
+uv sync --extra dev --extra gemini
 uv run ruff check .
-uv run pytest -q
+uv run ruff format --check .
+uv run python -m pytest -q
 uv build
 ```
 
@@ -124,8 +125,10 @@ future milestone explicitly promotes a stable artifact.
 
 The release health command runs:
 
+<!-- release-health-probes:start -->
 - `uv run ruff check .`
-- `uv run pytest -q`
+- `uv run ruff format --check .`
+- `uv run python -m pytest -q`
 - `scripts/fresh_clone_smoke.py`
 - `scripts/v02_local_runner_probe.py`
 - `scripts/v04_fixture_replay_probe.py`
@@ -147,6 +150,7 @@ The release health command runs:
 - `scripts/v20_guard_rejection_inspection_probe.py`
 - `scripts/v21_hybrid_review_routing_probe.py`
 - `scripts/plugin_smoke_probe.py`
+<!-- release-health-probes:end -->
 
 These checks are expected to leave `git status --short` clean.
 

@@ -17,7 +17,7 @@ repos:
 
       - id: pytest
         name: Pytest Suite
-        entry: uv run pytest -q
+        entry: uv run python -m pytest -q
         language: system
         types: [python]
         pass_filenames: false

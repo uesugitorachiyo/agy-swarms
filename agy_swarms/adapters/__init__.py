@@ -9,9 +9,6 @@ run; a declared command killed by a signal is classified TIMEOUT→Transient (D-
 isolation of adapter subprocesses (FR-12 worktree / NFR-8 hermetic FS) remains Phase-2.
 """
 
-from .claude import ClaudeAdapter
-from .codex import CodexAdapter
-from .gemini_api import GeminiApiAdapter
 from .scripted import CannedResult, ScriptedAdapter, ScriptedAdapterError
 
 __all__ = [
@@ -22,3 +19,19 @@ __all__ = [
     "CodexAdapter",
     "GeminiApiAdapter",
 ]
+
+
+def __getattr__(name: str):
+    if name == "ClaudeAdapter":
+        from .claude import ClaudeAdapter
+
+        return ClaudeAdapter
+    if name == "CodexAdapter":
+        from .codex import CodexAdapter
+
+        return CodexAdapter
+    if name == "GeminiApiAdapter":
+        from .gemini_api import GeminiApiAdapter
+
+        return GeminiApiAdapter
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -47,9 +47,7 @@ def test_run_review_benchmark_uses_codex_reasoning_profiles(tmp_path: Path):
                 "verdict": "block",
                 "confidence": 0.91,
                 "concerns": [],
-                "blockers": [
-                    {"reason": "unsafe_command", "detail": "Permission is missing."}
-                ],
+                "blockers": [{"reason": "unsafe_command", "detail": "Permission is missing."}],
                 "findings": [],
             }
         else:
