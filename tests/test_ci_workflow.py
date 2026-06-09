@@ -169,8 +169,7 @@ def test_release_workflow_verifies_and_attaches_package_artifacts():
 
     assert "uv sync --extra dev --extra gemini" in workflow
     assert "Verify Release Tag Matches Package Version" in workflow
-    assert "pyproject.toml" in workflow
-    assert "does not match pyproject.toml version" in workflow
+    assert "scripts/verify_release_tag.py" in workflow
     assert "make verify" in workflow
     assert "uv build" in workflow
     assert "dist/*.tar.gz" in workflow
