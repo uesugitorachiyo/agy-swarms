@@ -117,6 +117,7 @@ def test_makefile_exposes_verification_targets():
 
     for target in (
         "sync:",
+        "disk-preflight:",
         "lint:",
         "format-check:",
         "test:",
@@ -128,11 +129,40 @@ def test_makefile_exposes_verification_targets():
     ):
         assert target in makefile
     assert "uv sync --extra dev --extra gemini" in makefile
+    assert "uv run python scripts/disk_space_preflight.py" in makefile
     assert "uv run python -m pytest -q" in makefile
     assert "uv run python scripts/release_health.py" in makefile
     assert "uv run python scripts/pr_verification.py" in makefile
-    assert "verify-fast: lint format-check type-check verify-docs test build" in makefile
+    assert (
+        "verify-fast: disk-preflight lint format-check type-check verify-docs test build"
+        in makefile
+    )
     assert "verify: verify-fast release-health" in makefile
+
+
+def test_makefile_runs_disk_preflight_before_heavy_verification():
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+
+    assert "disk-preflight:" in makefile
+    assert "release-health: disk-preflight" in makefile
+    assert (
+        "verify-fast: disk-preflight lint format-check type-check verify-docs test build"
+        in makefile
+    )
+
+
+def test_release_docs_document_disk_preflight():
+    release_docs = (ROOT / "docs" / "release-verification.md").read_text(encoding="utf-8")
+    architecture_docs = (ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
+    docs = release_docs + "\n" + architecture_docs
+
+    for expected in (
+        "disk-preflight",
+        "1 GiB",
+        "AGY_VERIFY_MIN_FREE_MIB",
+        "TMPDIR",
+    ):
+        assert expected in docs
 
 
 def test_makefile_exposes_typecheck_target():
@@ -147,6 +177,7 @@ def test_makefile_typecheck_covers_full_package_and_release_health_modules():
 
     for checked_path in (
         "agy_swarms",
+        "scripts/disk_space_preflight.py",
         "scripts/release_health.py",
         "scripts/release_health_registry.py",
         "scripts/release_health_docs.py",

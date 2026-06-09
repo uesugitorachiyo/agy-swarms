@@ -41,12 +41,9 @@ def render_verification_block(
 def update_body(existing: str, verification_block: str) -> str:
     """Replace or append the PR verification section."""
     section = f"## Verification\n{verification_block}"
-    if START_MARKER in existing and END_MARKER in existing:
-        before, marked_and_after = existing.split(START_MARKER, maxsplit=1)
-        _, after = marked_and_after.split(END_MARKER, maxsplit=1)
-        if before.rstrip().endswith("## Verification"):
-            return f"{before.rstrip()}\n{verification_block}{after}"
-        return f"{before.rstrip()}\n\n{section}{after}"
+    verification_section = _replace_markdown_sections(existing, "Verification", section)
+    if verification_section is not None:
+        return verification_section
 
     test_plan_index = existing.find("\n## Test Plan")
     if test_plan_index == -1 and existing.startswith("## Test Plan"):
@@ -56,6 +53,40 @@ def update_body(existing: str, verification_block: str) -> str:
         return f"{prefix}\n\n{section}\n"
 
     return f"{existing.rstrip()}\n\n{section}\n"
+
+
+def _markdown_section_bounds(existing: str, heading: str) -> list[tuple[int, int]]:
+    marker = f"## {heading}"
+    bounds: list[tuple[int, int]] = []
+    search_from = 0
+    while True:
+        if existing.startswith(marker, search_from):
+            start = search_from
+        else:
+            marker_index = existing.find(f"\n{marker}", search_from)
+            if marker_index == -1:
+                break
+            start = marker_index + 1
+        next_heading = existing.find("\n## ", start + len(marker))
+        end = len(existing) if next_heading == -1 else next_heading + 1
+        bounds.append((start, end))
+        search_from = end
+    return bounds
+
+
+def _replace_markdown_sections(existing: str, heading: str, replacement: str) -> str | None:
+    bounds = _markdown_section_bounds(existing, heading)
+    if not bounds:
+        return None
+
+    first_start, first_end = bounds[0]
+    parts = [existing[:first_start].rstrip(), replacement]
+    cursor = first_end
+    for start, end in bounds[1:]:
+        parts.append(existing[cursor:start].strip())
+        cursor = end
+    parts.append(existing[cursor:].strip())
+    return "\n\n".join(part for part in parts if part).rstrip() + "\n"
 
 
 def _run_text(command: list[str]) -> str:

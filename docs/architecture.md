@@ -56,6 +56,9 @@ When adding conductor behavior, prefer this split:
 
 Release verification is split between a registry, renderer, and runner:
 
+- `scripts/disk_space_preflight.py` checks the workspace and temp filesystem
+  before heavy verification targets allocate build, pytest, or release-health
+  artifacts.
 - `scripts/release_health_registry.py` is the source of truth for release-health probe definitions.
 - `scripts/release_health.py` runs the registered probes and prints the dashboard.
 - `scripts/release_health_docs.py` renders probe documentation from the registry.
@@ -64,12 +67,17 @@ Release verification is split between a registry, renderer, and runner:
 The CI workflow also runs `make verify` in a clean checkout. Locally, `make verify`
 includes a strict docs drift check, so individual verification commands can be
 more convenient while a working tree intentionally contains uncommitted changes.
+Heavy Make targets run `disk-preflight` first and require at least 1 GiB free on
+the workspace and temp filesystem by default. Operators can raise or lower that
+threshold with `AGY_VERIFY_MIN_FREE_MIB` and can point temp-heavy probes at a
+larger filesystem with `TMPDIR`.
 
 ## Verification Facade
 
 The Makefile defines the project verification facade:
 
 - `make lint`
+- `make disk-preflight`
 - `make format-check`
 - `make type-check`
 - `make test`

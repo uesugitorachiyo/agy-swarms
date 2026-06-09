@@ -25,6 +25,37 @@ uv run python scripts/release_health.py
 This is only a local tool-path requirement. It does not require GitHub Actions,
 provider API keys, local `agy` OAuth, or live model billing.
 
+## Verification disk preflight
+
+Heavy verification targets run a disk preflight before allocating pytest,
+package-build, or release-health temporary files:
+
+```bash
+make disk-preflight
+make verify-fast
+make verify
+```
+
+The default requirement is at least 1 GiB free on both the workspace filesystem
+and the temp filesystem. If a constrained environment intentionally needs a
+different threshold, set `AGY_VERIFY_MIN_FREE_MIB`:
+
+```bash
+AGY_VERIFY_MIN_FREE_MIB=2048 make verify
+```
+
+If the workspace has enough room but the default temp directory is small, point
+Python and pytest temporary files at a larger filesystem with `TMPDIR`:
+
+```bash
+mkdir -p /path/with/space/agy-tmp
+TMPDIR=/path/with/space/agy-tmp make verify
+```
+
+Do not lower `AGY_VERIFY_MIN_FREE_MIB` to bypass recurring failures. Free disk
+space or move `TMPDIR`; otherwise full release-health probes can fail late while
+creating virtualenvs, git sandboxes, package artifacts, or plugin smoke copies.
+
 ## Manual cross-platform CI
 
 GitHub Actions remains manual-only while billing is postponed. When hosted
