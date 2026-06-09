@@ -67,8 +67,9 @@ Release verification is split between a registry, renderer, and runner:
 The CI workflow runs automatically for pull requests and pushes to `main`. It
 uses `make verify-fast` across the OS matrix and `make release-health` once on
 Ubuntu after fast checks pass. Locally, `make verify` composes both surfaces and
-includes a strict docs drift check, so individual verification commands can be
-more convenient while a working tree intentionally contains uncommitted changes.
+includes workflow linting plus a strict docs drift check, so individual
+verification commands can be more convenient while a working tree intentionally
+contains uncommitted changes.
 Heavy Make targets run `disk-preflight` first and require at least 1 GiB free on
 the workspace and temp filesystem by default. Operators can raise or lower that
 threshold with `AGY_VERIFY_MIN_FREE_MIB` and can point temp-heavy probes at a

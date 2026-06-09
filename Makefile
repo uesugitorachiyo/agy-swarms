@@ -1,10 +1,13 @@
-.PHONY: sync disk-preflight lint format-check type-check test build release-health verify-docs verify-fast verify pr-verification
+.PHONY: sync disk-preflight workflow-lint lint format-check type-check test build release-health verify-docs verify-fast verify pr-verification
 
 sync:
 	uv sync --extra dev --extra gemini
 
 disk-preflight:
 	uv run python scripts/disk_space_preflight.py
+
+workflow-lint:
+	uv run actionlint
 
 lint:
 	uv run ruff check .
@@ -28,9 +31,9 @@ verify-docs:
 	uv run python scripts/rewrite_release_health_docs.py
 	git diff --exit-code docs/release-verification.md
 
-verify-fast: disk-preflight lint format-check type-check verify-docs test build
+verify-fast: disk-preflight workflow-lint lint format-check type-check verify-docs test build
 
 verify: verify-fast release-health
 
 pr-verification:
-	uv run python scripts/pr_verification.py --pr "$${PR_NUMBER:?set PR_NUMBER}" --pytest-count "$${PYTEST_COUNT:-742}" --mypy-files "$${MYPY_FILES:-97}" --release-health-passed "$${RELEASE_HEALTH_PASSED:-24}" --release-health-total "$${RELEASE_HEALTH_TOTAL:-24}"
+	uv run python scripts/pr_verification.py --pr "$${PR_NUMBER:?set PR_NUMBER}" --pytest-count "$${PYTEST_COUNT:-744}" --mypy-files "$${MYPY_FILES:-97}" --release-health-passed "$${RELEASE_HEALTH_PASSED:-24}" --release-health-total "$${RELEASE_HEALTH_TOTAL:-24}"
