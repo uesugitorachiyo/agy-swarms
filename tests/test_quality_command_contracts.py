@@ -74,11 +74,13 @@ def test_makefile_exposes_verification_targets():
         "release-health:",
         "verify-fast:",
         "verify:",
+        "pr-verification:",
     ):
         assert target in makefile
     assert "uv sync --extra dev --extra gemini" in makefile
     assert "uv run python -m pytest -q" in makefile
     assert "uv run python scripts/release_health.py" in makefile
+    assert "uv run python scripts/pr_verification.py" in makefile
     assert "verify-fast: lint format-check type-check verify-docs test build" in makefile
     assert "verify: verify-fast release-health" in makefile
 
