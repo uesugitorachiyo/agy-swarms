@@ -4,9 +4,26 @@ All notable release-engineering milestones for this repository are recorded here
 
 ## Unreleased
 
+- No unreleased changes.
+
+## v0.5.3 - 2026-06-09
+
+This release packages the repository-hardening work that made local and hosted
+verification reliable enough to run automatically on pull requests and `main`.
+
 - Clarified Antigravity plugin installation docs: the supported public path is
   fresh clone plus `agy plugin install .`; raw GitHub URL install targets are
   rejected by `agy` 1.0.5 as unsupported extension formats.
+- Added a verification disk preflight before heavy Make targets so low-space
+  environments fail early with `AGY_VERIFY_MIN_FREE_MIB` and `TMPDIR` guidance.
+- Enabled automatic pull-request and `main` push CI while keeping
+  `workflow_dispatch` available for manual reruns.
+- Hardened the PR verification updater so unmarked or duplicate verification
+  sections are replaced cleanly.
+- Split fast matrix checks from release-health and verified the release gate
+  locally with `723 passed` plus release health `24/24 checks passed`.
+- Confirmed automatic remote CI on the release-prep path across Ubuntu, macOS,
+  Windows, package install modes, and release health.
 
 ## v0.5.2 - 2026-06-05
 

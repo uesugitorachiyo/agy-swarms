@@ -72,17 +72,18 @@ uv run agy-swarms resume --checkpoint /tmp/agy-swarms-success-report.json
 
 ## Release Checks
 
-The public CI path is intentionally local and deterministic:
+The local release gate is deterministic:
 
 ```bash
-uv run ruff check .
-uv run ruff format --check .
-uv run python -m pytest -q
-uv build
+make verify
 ```
 
-For hosted macOS/Windows/Linux verification, run the manual GitHub Actions `CI`
-workflow. It uses a `workflow_dispatch` matrix across `ubuntu-latest`,
+`make verify` runs lint, format, type-check, docs drift, pytest, `uv build`,
+and release health.
+
+Hosted verification runs automatically in the GitHub Actions `CI` workflow for
+pull requests and pushes to `main`. The workflow keeps `workflow_dispatch`
+enabled for manual reruns and uses a matrix across `ubuntu-latest`,
 `macos-latest`, and `windows-latest`.
 
 Additional release verification notes live in

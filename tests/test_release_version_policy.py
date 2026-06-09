@@ -14,6 +14,12 @@ def test_changelog_records_frozen_ac0_ac6_and_v050_release():
 
     assert "v0.0.0-ac0-ac6" in changelog
     assert f"v{package_version}" in changelog
+    assert "v0.5.3 - 2026-06-09" in changelog
+    assert "verification disk preflight" in changelog
+    assert "automatic pull-request and `main` push CI" in changelog
+    assert "PR verification updater" in changelog
+    assert "723 passed" in changelog
+    assert "24/24 checks passed" in changelog
     assert "AC0-AC6" in changelog
     assert "v0.5.0 - 2026-06-01" in changelog
     assert "Local Runner Report Contracts" in changelog
@@ -43,13 +49,23 @@ def test_versioning_policy_records_050_release_gate():
     assert "scripts/v04_fixture_replay_probe.py" in policy
     assert "scripts/v05_report_contract_probe.py" in policy
     assert "fresh_clone_smoke.py" in policy
-    assert "manual-only" in policy
+    assert "automatic pull requests" in policy
+    assert "pushes to `main`" in policy
+    assert "remote CI" in policy
 
 
 def test_package_version_matches_v050_release():
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.5.2"
+    assert pyproject["project"]["version"] == "0.5.3"
+
+
+def test_lockfile_package_version_matches_pyproject():
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    lockfile = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
+
+    package = next(package for package in lockfile["package"] if package["name"] == "agy-swarms")
+    assert package["version"] == pyproject["project"]["version"]
 
 
 def test_release_docs_explain_cross_platform_verification():
