@@ -67,7 +67,7 @@ deterministic path on:
 
 - `ubuntu-latest`
 - `macos-latest`
-- `windows-latest`
+- `windows-2025`
 
 Each matrix job runs:
 
@@ -89,6 +89,10 @@ make release-health
 The workflow sets `PYTHONIOENCODING=utf-8` and the release health output uses
 ASCII status markers (`[OK]` / `[FAIL]`) so Windows CP1252/charmap terminals do
 not fail on status output.
+
+The Windows matrix leg is pinned to `windows-2025` instead of `windows-latest`
+so hosted verification does not change when GitHub retargets the floating
+Windows label.
 
 ## GitHub Release publishing
 
