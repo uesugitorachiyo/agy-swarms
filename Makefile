@@ -1,4 +1,4 @@
-.PHONY: sync lint format-check type-check test build release-health verify-docs verify
+.PHONY: sync lint format-check type-check test build release-health verify-docs verify-fast verify
 
 sync:
 	uv sync --extra dev --extra gemini
@@ -25,4 +25,6 @@ verify-docs:
 	uv run python scripts/rewrite_release_health_docs.py
 	git diff --exit-code docs/release-verification.md
 
-verify: lint format-check type-check verify-docs test build release-health
+verify-fast: lint format-check type-check verify-docs test build
+
+verify: verify-fast release-health
