@@ -10,15 +10,15 @@ on `main`.
 
 ## Current package release
 
-The current package version is `0.5.2`, released after functional Codex
-reviewer/closer execution, review telemetry, seeded review benchmarks, and
-Codex low/high route recommendation support landed. The matching release tag is
-`v0.5.2`.
+The current package version is `0.5.3`, released after verification disk
+preflight, automatic pull requests and pushes to `main` CI, PR verification
+evidence cleanup, and repository-hardening verification updates landed. The
+matching release tag is `v0.5.3`.
 
 Before the release cut, the package stayed at `0.0.0` while release mechanics,
 documentation, CI-safe checks, and packaging smoke tests were hardened.
 
-The previous package release was `0.5.1`, with matching release tag `v0.5.1`.
+The previous package release was `0.5.2`, with matching release tag `v0.5.2`.
 
 ## Future release gate
 
@@ -37,6 +37,7 @@ The release health suite includes the deterministic acceptance probes and
 `scripts/v05_report_contract_probe.py`. These checks are expected to leave
 `git status --short` clean.
 
-GitHub Actions is configured as manual-only while billing is postponed. Until
-billing is resolved, local `scripts/release_health.py` output is the release
-authority.
+GitHub Actions now runs automatically for pull requests and pushes to `main`.
+Local `make verify` remains the pre-PR release gate, and remote CI is the hosted
+release authority once a pull request or `main` push starts. Keep
+`workflow_dispatch` available for manual reruns after infrastructure failures.
