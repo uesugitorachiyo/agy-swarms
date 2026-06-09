@@ -16,6 +16,8 @@ All notable release-engineering milestones for this repository are recorded here
   GitHub Release publication, and verification evidence.
 - Added a tested release tag/version guard script used by the GitHub Release
   workflow before publishing artifacts.
+- Added `actionlint` workflow linting to the fast verification facade so GitHub
+  Actions syntax is checked before workflow runtime.
 
 ## v0.5.3 - 2026-06-09
 

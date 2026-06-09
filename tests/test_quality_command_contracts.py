@@ -1,3 +1,4 @@
+import tomllib
 from pathlib import Path
 
 
@@ -118,6 +119,7 @@ def test_makefile_exposes_verification_targets():
     for target in (
         "sync:",
         "disk-preflight:",
+        "workflow-lint:",
         "lint:",
         "format-check:",
         "test:",
@@ -130,11 +132,12 @@ def test_makefile_exposes_verification_targets():
         assert target in makefile
     assert "uv sync --extra dev --extra gemini" in makefile
     assert "uv run python scripts/disk_space_preflight.py" in makefile
+    assert "uv run actionlint" in makefile
     assert "uv run python -m pytest -q" in makefile
     assert "uv run python scripts/release_health.py" in makefile
     assert "uv run python scripts/pr_verification.py" in makefile
     assert (
-        "verify-fast: disk-preflight lint format-check type-check verify-docs test build"
+        "verify-fast: disk-preflight workflow-lint lint format-check type-check verify-docs test build"
         in makefile
     )
     assert "verify: verify-fast release-health" in makefile
@@ -146,9 +149,17 @@ def test_makefile_runs_disk_preflight_before_heavy_verification():
     assert "disk-preflight:" in makefile
     assert "release-health: disk-preflight" in makefile
     assert (
-        "verify-fast: disk-preflight lint format-check type-check verify-docs test build"
+        "verify-fast: disk-preflight workflow-lint lint format-check type-check verify-docs test build"
         in makefile
     )
+
+
+def test_actionlint_is_available_from_dev_dependencies():
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+
+    dev_dependencies = pyproject["project"]["optional-dependencies"]["dev"]
+
+    assert any(dependency.startswith("actionlint-py") for dependency in dev_dependencies)
 
 
 def test_release_docs_document_disk_preflight():
@@ -163,6 +174,13 @@ def test_release_docs_document_disk_preflight():
         "TMPDIR",
     ):
         assert expected in docs
+
+
+def test_release_docs_describe_workflow_linting_in_fast_verification():
+    docs = (ROOT / "docs" / "release-verification.md").read_text(encoding="utf-8")
+
+    assert "`make verify-fast` includes workflow lint, Python lint, format" in docs
+    assert "GitHub Actions workflow syntax and expression mistakes" in docs
 
 
 def test_release_docs_document_automatic_ci_triggers():

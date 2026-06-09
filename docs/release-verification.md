@@ -76,8 +76,10 @@ uv sync --extra dev --extra gemini
 make verify-fast
 ```
 
-`make verify-fast` includes lint, format, type-check, docs drift, pytest, and
-package build coverage through `uv build`.
+`make verify-fast` includes workflow lint, Python lint, format,
+type-check, docs drift, pytest, and build. The workflow lint step uses
+`actionlint` to catch GitHub Actions workflow syntax and expression mistakes
+before hosted jobs reach runtime.
 
 The release-health job runs once on Ubuntu after the fast matrix checks pass:
 
