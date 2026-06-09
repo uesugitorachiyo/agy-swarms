@@ -62,6 +62,35 @@ def test_conductor_helper_contracts_live_in_focused_test_module():
     assert "_helper_is_importable" not in conductor_tests
 
 
+def test_conductor_behavior_tests_use_shared_support_helpers():
+    support = ROOT / "tests" / "conductor_support.py"
+    assert support.exists()
+    support_text = support.read_text(encoding="utf-8")
+
+    for expected_name in (
+        "LIMIT",
+        "def epoch",
+        "def envelope",
+        "def fanout_graph",
+        "def scripted_fanout_adapter",
+        "class CountingAdapter",
+        "class FakeAdapter",
+        "def single_graph",
+    ):
+        assert expected_name in support_text
+
+    for test_file in (
+        "test_conductor.py",
+        "test_ac1_integration.py",
+        "test_conductor_reducers.py",
+        "test_conductor_test_node.py",
+    ):
+        text = (ROOT / "tests" / test_file).read_text(encoding="utf-8")
+        assert "from tests.conductor_support import" in text
+        assert "class FakeAdapter" not in text
+        assert "def _epoch" not in text
+
+
 def test_makefile_exposes_verification_targets():
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
 

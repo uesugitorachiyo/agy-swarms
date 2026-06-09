@@ -1,12 +1,10 @@
 """Integrated conductor failure paths across crash containment, fallback, budget, resume."""
 
 from agy_swarms.adapters.scripted import CannedResult, ScriptedAdapter
-from agy_swarms.budget import Dims
 from agy_swarms.checkpoint import Checkpoint
 from agy_swarms.conductor import Conductor
 from agy_swarms.types import (
     Caps,
-    Epoch,
     ErrorClass,
     NodeSpec,
     NodeStatus,
@@ -14,12 +12,12 @@ from agy_swarms.types import (
     RunStatus,
     TaskGraph,
 )
+from tests.conductor_support import LIMIT as _LIMIT
+from tests.conductor_support import epoch
 
-_LIMIT = Dims(tokens=1_000_000, usd=1000.0)
 
-
-def _epoch() -> Epoch:
-    return Epoch(epoch_seq=1, epoch_id="integration")
+def _epoch():
+    return epoch("integration")
 
 
 def _usage(*, output: int = 0, thinking: int = 0) -> dict[str, object]:

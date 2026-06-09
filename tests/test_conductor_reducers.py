@@ -10,55 +10,20 @@ is cacheable on resume like any node.
 
 from dataclasses import asdict
 
-from agy_swarms.budget import Dims
 from agy_swarms.canonical import canonical
 from agy_swarms.checkpoint import Checkpoint
 from agy_swarms.conductor import Conductor
 from agy_swarms.types import (
-    Epoch,
-    ErrorClass,
     NodeSpec,
     NodeStatus,
     Reducer,
-    ResultEnvelope,
     RunStatus,
     TaskGraph,
 )
-
-_LIMIT = Dims(tokens=1_000_000, usd=1000.0)
-
-
-def _epoch(epoch_id="E1", seq=1):
-    return Epoch(epoch_seq=seq, epoch_id=epoch_id)
-
-
-def _env(status="succeeded", *, artifact=None):
-    return ResultEnvelope(
-        node_id="",
-        idempotency_key="",
-        status=status,
-        error_class=ErrorClass.NONE,
-        artifact=artifact or {},
-        token_usage={"input": 0, "thinking": 0, "output": 0, "cached": 0, "accounting": "exact"},
-    )
-
-
-class FakeAdapter:
-    """Scripts one envelope per node id; records dispatched ids. A reducer node that is
-    (wrongly) dispatched here pops its canned result and shows up in ``.calls``."""
-
-    accounting = "exact"
-
-    def __init__(self, script):
-        self.script = {k: list(v) for k, v in script.items()}
-        self.calls: list[str] = []
-
-    def covers(self, required):
-        return True
-
-    def run(self, node, *, attempt=0, reservation_id=None):
-        self.calls.append(node.id)
-        return self.script[node.id].pop(0)
+from tests.conductor_support import LIMIT as _LIMIT
+from tests.conductor_support import FakeAdapter
+from tests.conductor_support import envelope as _env
+from tests.conductor_support import epoch as _epoch
 
 
 def _fanout_reduce_graph(reducer: Reducer, *, a_art, b_art):

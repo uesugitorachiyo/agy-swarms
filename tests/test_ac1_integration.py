@@ -29,95 +29,26 @@ from dataclasses import asdict
 
 import pytest
 
-from agy_swarms.adapters.scripted import CannedResult, ScriptedAdapter
 from agy_swarms.budget import BudgetLedger, Dims
 from agy_swarms.canonical import canonical
 from agy_swarms.checkpoint import Checkpoint, CheckpointError, JournalEntry
 from agy_swarms.conductor import Conductor, RunReport
 from agy_swarms.types import (
     Caps,
-    Epoch,
     ErrorClass,
     NodeSpec,
     NodeStatus,
-    ResultEnvelope,
     RetryPolicy,
     RunStatus,
     TaskGraph,
 )
-
-_LIMIT = Dims(tokens=1_000_000, usd=1000.0)
-
-
-def _epoch(epoch_id="E1", seq=1):
-    return Epoch(epoch_seq=seq, epoch_id=epoch_id)
-
-
-def _env(status="succeeded", error_class=ErrorClass.NONE, *, out=0, think=0, artifact=None):
-    return ResultEnvelope(
-        node_id="",
-        idempotency_key="",
-        status=status,
-        error_class=error_class,
-        artifact=artifact or {},
-        token_usage={
-            "input": 0,
-            "thinking": think,
-            "output": out,
-            "cached": 0,
-            "accounting": "exact",
-        },
-    )
-
-
-def _fanout_graph(objective_a="do a"):
-    """The fixed AC-1 3-node fan-out: source ``root`` → leaves ``a`` and ``b``."""
-    root = NodeSpec(id="root", role="worker", objective="root", outputs=["data"])
-    a = NodeSpec(id="a", role="worker", objective=objective_a, dependencies=["root"])
-    b = NodeSpec(id="b", role="worker", objective="do b", dependencies=["root"])
-    return TaskGraph(nodes=[root, a, b], edges=[("root", "a"), ("root", "b")])
-
-
-def _scripted():
-    return ScriptedAdapter(
-        {
-            "root": CannedResult(artifact={"data": 1}),
-            "a": CannedResult(artifact={"x": 2}),
-            "b": CannedResult(artifact={"y": 3}),
-        }
-    )
-
-
-class _Counting:
-    """Wraps an adapter and records dispatched node ids (to prove no re-dispatch)."""
-
-    def __init__(self, inner):
-        self.inner = inner
-        self.accounting = inner.accounting
-        self.calls: list[str] = []
-
-    def covers(self, required):
-        return self.inner.covers(required)
-
-    def run(self, node, *, attempt=0, reservation_id=None):
-        self.calls.append(node.id)
-        return self.inner.run(node, attempt=attempt, reservation_id=reservation_id)
-
-
-class FakeAdapter:
-    """Returns scripted envelopes per node id (one per attempt) — drives failure/budget."""
-
-    def __init__(self, script, *, accounting="exact"):
-        self.script = {k: list(v) for k, v in script.items()}
-        self.accounting = accounting
-        self.calls: list[str] = []
-
-    def covers(self, required):
-        return True
-
-    def run(self, node, *, attempt=0, reservation_id=None):
-        self.calls.append(node.id)
-        return self.script[node.id].pop(0)
+from tests.conductor_support import LIMIT as _LIMIT
+from tests.conductor_support import CountingAdapter as _Counting
+from tests.conductor_support import FakeAdapter
+from tests.conductor_support import envelope as _env
+from tests.conductor_support import epoch as _epoch
+from tests.conductor_support import fanout_graph as _fanout_graph
+from tests.conductor_support import scripted_fanout_adapter as _scripted
 
 
 class EchoAdapter:

@@ -31,100 +31,22 @@ from agy_swarms.conductor import (
 )
 from agy_swarms.types import (
     Caps,
-    Epoch,
     ErrorClass,
     FailureClass,
     NodeSpec,
     NodeStatus,
-    ResultEnvelope,
     RetryPolicy,
     RunStatus,
     TaskGraph,
 )
+from tests.conductor_support import CountingAdapter as _Counting
+from tests.conductor_support import FakeAdapter
+from tests.conductor_support import envelope as _env
+from tests.conductor_support import epoch as _epoch
+from tests.conductor_support import fanout_graph as _fanout_graph
+from tests.conductor_support import scripted_fanout_adapter as _scripted
 
 # --- helpers ---------------------------------------------------------------
-
-
-def _epoch(epoch_id="E1", seq=1):
-    return Epoch(epoch_seq=seq, epoch_id=epoch_id)
-
-
-def _env(
-    status="succeeded",
-    error_class=ErrorClass.NONE,
-    *,
-    out=0,
-    think=0,
-    cost=0.0,
-    failure_class=None,
-    artifact=None,
-):
-    return ResultEnvelope(
-        node_id="",
-        idempotency_key="",
-        status=status,
-        error_class=error_class,
-        failure_class=failure_class,
-        artifact=artifact or {},
-        token_usage={
-            "input": 0,
-            "thinking": think,
-            "output": out,
-            "cached": 0,
-            "accounting": "exact",
-        },
-        cost_usd=cost,
-    )
-
-
-def _fanout_graph(objective_a="do a"):
-    """1 source ``root`` fanning out to two leaf workers ``a`` and ``b`` (3 nodes)."""
-    root = NodeSpec(id="root", role="worker", objective="root", outputs=["data"])
-    a = NodeSpec(id="a", role="worker", objective=objective_a, dependencies=["root"])
-    b = NodeSpec(id="b", role="worker", objective="do b", dependencies=["root"])
-    return TaskGraph(nodes=[root, a, b], edges=[("root", "a"), ("root", "b")])
-
-
-def _scripted():
-    return ScriptedAdapter(
-        {
-            "root": CannedResult(artifact={"data": 1}),
-            "a": CannedResult(artifact={"x": 2}),
-            "b": CannedResult(artifact={"y": 3}),
-        }
-    )
-
-
-class _Counting:
-    """Wraps any adapter and records the node ids dispatched (to assert no re-dispatch)."""
-
-    def __init__(self, inner):
-        self.inner = inner
-        self.accounting = inner.accounting
-        self.calls: list[str] = []
-
-    def covers(self, required):
-        return self.inner.covers(required)
-
-    def run(self, node, *, attempt=0, reservation_id=None):
-        self.calls.append(node.id)
-        return self.inner.run(node, attempt=attempt, reservation_id=reservation_id)
-
-
-class FakeAdapter:
-    """Returns scripted envelopes per node id (one per attempt) — drives failure paths."""
-
-    def __init__(self, script, *, accounting="exact"):
-        self.script = {k: list(v) for k, v in script.items()}
-        self.accounting = accounting
-        self.calls: list[str] = []
-
-    def covers(self, required):
-        return True
-
-    def run(self, node, *, attempt=0, reservation_id=None):
-        self.calls.append(node.id)
-        return self.script[node.id].pop(0)
 
 
 def _conductor(graph, adapter, *, limit=None, epoch=None, checkpoint=None, cap=4):
