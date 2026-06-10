@@ -8,12 +8,12 @@ dependencies = []
 
 [project.optional-dependencies]
 gemini = [
-    "google-genai>=0.3.0",   # Gemini API transport (FR-14); pin exact in agy.lock
+    "google-genai>=2.8.0",   # Gemini API transport (FR-14); pin exact in agy.lock
 ]
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
-    "ruff>=0.6",
+    "ruff>=0.15.16",
     "pre-commit>=3.5",
     "mypy>=1.10",
     "actionlint-py>=1.7.12.24",
