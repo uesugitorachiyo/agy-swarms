@@ -15,6 +15,7 @@ def test_changelog_records_frozen_ac0_ac6_and_v050_release():
 
     assert "v0.0.0-ac0-ac6" in changelog
     assert f"v{package_version}" in changelog
+    assert "v0.5.4 - 2026-06-10" in changelog
     assert "v0.5.3 - 2026-06-09" in changelog
     assert "verification disk preflight" in changelog
     assert "automatic pull-request and `main` push CI" in changelog
@@ -58,7 +59,7 @@ def test_versioning_policy_records_050_release_gate():
 def test_package_version_matches_v050_release():
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.5.3"
+    assert pyproject["project"]["version"] == "0.5.4"
 
 
 def test_lockfile_package_version_matches_pyproject():
