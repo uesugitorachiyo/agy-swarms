@@ -126,12 +126,15 @@ It then rebuilds the package artifacts with `uv build`, writes
 using generated release notes. This workflow publishes only GitHub Releases; it
 does not publish to PyPI or any package index.
 
-To verify downloaded release assets locally, place the wheel, source
-distribution, and `SHA256SUMS.txt` in one directory and run:
+To verify published release assets locally, run:
 
 ```bash
-sha256sum --check SHA256SUMS.txt
+uv run python scripts/verify_release_assets.py --tag v<version> --repo uesugitorachiyo/agy-swarms
 ```
+
+The verifier downloads the release assets with `gh release download` into a
+temporary directory, reads `SHA256SUMS.txt`, and checks every listed asset with
+Python SHA-256 hashing so the evidence path works on macOS, Linux, and Windows.
 
 The tag/version guard is covered by `tests/test_release_tag_guard.py` so the
 release workflow does not rely on untested inline shell logic.

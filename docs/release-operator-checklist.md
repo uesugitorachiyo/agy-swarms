@@ -124,11 +124,10 @@ The release must be non-draft, non-prerelease unless intentionally marked
 otherwise, and it must include both the wheel and source distribution.
 It must also include `SHA256SUMS.txt`.
 
-After downloading all three assets into one directory, verify the checksum
-manifest:
+Verify the published assets and checksum manifest:
 
 ```bash
-sha256sum --check SHA256SUMS.txt
+uv run python scripts/verify_release_assets.py --tag v<version> --repo uesugitorachiyo/agy-swarms
 ```
 
 ## 7. Capture Final Evidence

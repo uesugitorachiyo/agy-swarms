@@ -98,7 +98,7 @@ def test_release_operator_checklist_covers_end_to_end_release_flow():
     assert "agy_swarms-<version>-py3-none-any.whl" in checklist
     assert "agy_swarms-<version>.tar.gz" in checklist
     assert "SHA256SUMS.txt" in checklist
-    assert "sha256sum --check" in checklist
+    assert "scripts/verify_release_assets.py" in checklist
 
 
 def test_release_policy_links_operator_checklist():
