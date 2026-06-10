@@ -142,6 +142,75 @@ def test_conductor_budget_helpers_are_importable():
     assert runtime.budget_consumed == {"tokens": 15, "usd": 1.0}
 
 
+def test_conductor_accounting_helper_reserves_with_escalated_fallback_accounting():
+    from agy_swarms.budget import BudgetLedger
+    from agy_swarms.conductor_accounting import reserve_node_attempt
+    from agy_swarms.types import Caps
+
+    class OpaqueFallback:
+        accounting = "opaque"
+
+        def covers(self, required_capabilities):
+            return True
+
+    node = NodeSpec(
+        id="n",
+        role="worker",
+        objective="high value task",
+        caps=Caps(max_output_tokens=50),
+    )
+    graph = TaskGraph(nodes=[node])
+    graph.high_value = True
+    ledger = BudgetLedger(Dims(tokens=500), opaque_multiplier=3)
+    runtime = NodeRuntimeState(node_id="n")
+
+    admission = reserve_node_attempt(
+        ledger=ledger,
+        epoch=_epoch(),
+        node=node,
+        runtime=runtime,
+        adapter=ScriptedAdapter({}),
+        fallback_adapter=OpaqueFallback(),
+        graph=graph,
+    )
+
+    assert admission.admitted
+    entry = ledger.entries[(1, "n")]
+    assert entry.reserved == Dims(tokens=150)
+
+
+def test_conductor_accounting_helper_commits_fallback_envelope_with_fallback_accounting():
+    from agy_swarms.budget import BudgetLedger
+    from agy_swarms.conductor_accounting import commit_envelope_usage
+    from agy_swarms.types import Caps
+
+    class FallbackAdapter:
+        name = "gemini"
+        accounting = "opaque"
+
+    node = NodeSpec(id="n", role="worker", objective="n", caps=Caps(max_output_tokens=10))
+    runtime = NodeRuntimeState(node_id="n")
+    ledger = BudgetLedger(Dims(tokens=500), opaque_multiplier=3)
+    ledger.reserve(1, "n", node, accounting="opaque")
+    envelope = _env(out=10)
+    envelope.adapter = "gemini"
+
+    actual = commit_envelope_usage(
+        ledger=ledger,
+        epoch=_epoch(),
+        node=node,
+        runtime=runtime,
+        envelope=envelope,
+        adapter=ScriptedAdapter({}),
+        fallback_adapter=FallbackAdapter(),
+    )
+
+    assert actual == Dims(tokens=10)
+    entry = ledger.entries[(1, "n")]
+    assert entry.committed == Dims(tokens=30)
+    assert runtime.budget_consumed == {"tokens": 10, "usd": 0.0}
+
+
 def test_drift_helper_is_importable():
     from agy_swarms.conductor_drift import collect_drift_records, report_drift_records
 

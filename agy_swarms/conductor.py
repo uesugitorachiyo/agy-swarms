@@ -32,11 +32,8 @@ from typing import Any
 
 from .budget import BudgetLedger, Dims
 from .checkpoint import Checkpoint
-from .conductor_budget import (
-    actual_from_envelope,
-    commit_actual_usage,
-    dims_from_consumed as _dims,
-)
+from .conductor_accounting import commit_envelope_usage, reserve_node_attempt
+from .conductor_budget import commit_actual_usage, dims_from_consumed as _dims
 from .conductor_codex_batch import dispatch_codex_review_batch
 from .conductor_checkpointing import (
     adopt_cached_runtime,
@@ -59,7 +56,6 @@ from .conductor_pipeline import run_pipeline_item
 from .conductor_retry import classify, retry_eligible
 from .conductor_review_budget import review_budget_events
 from .lockfile import Lockfile
-from .model_routing import route_model_tier
 from .runners import subprocess_runner
 from .scheduler import Scheduler
 from .types import (
@@ -247,16 +243,14 @@ class Conductor:
             runtime.attempt += 1
             envelope = self._run_node(node, runtime, reservation_id=admission.reservation_id)
             self._stamp(envelope, node, runtime)
-            accounting = self.adapter.accounting
-            if self.fallback_adapter is not None and envelope.adapter == self.fallback_adapter.name:
-                accounting = self.fallback_adapter.accounting
-            actual = commit_actual_usage(
+            actual = commit_envelope_usage(
                 ledger=self.ledger,
-                epoch_seq=self.epoch.epoch_seq,
-                node_id=node.id,
+                epoch=self.epoch,
+                node=node,
                 runtime=runtime,
-                actual=actual_from_envelope(envelope),
-                accounting=accounting,
+                envelope=envelope,
+                adapter=self.adapter,
+                fallback_adapter=self.fallback_adapter,
             )
             self._maybe_record_review_budget_alert(node, actual)
             runtime.error_class = envelope.error_class
@@ -321,30 +315,14 @@ class Conductor:
         )
 
     def _reserve(self, node: NodeSpec, runtime: Any) -> Any:
-        accounting = self.adapter.accounting
-        if self.fallback_adapter is not None and node.role not in ("reducer", "test", "verify"):
-            entry = self.ledger.entries.get((self.epoch.epoch_seq, node.id))
-            reserved_dims = entry.reserved if entry is not None else Dims()
-            remaining_budget = self.ledger.available + reserved_dims
-            high_value = getattr(node, "high_value", False) or getattr(
-                self.graph, "high_value", False
-            )
-            decision = route_model_tier(
-                node,
-                failed_attempts=runtime.attempt + 1,
-                high_value=high_value,
-                remaining_budget=remaining_budget,
-            )
-            if decision.escalated and self.fallback_adapter.covers(node.required_capabilities):
-                accounting = self.fallback_adapter.accounting
-
-        return self.ledger.reserve(
-            self.epoch.epoch_seq,
-            node.id,
-            node,
-            epoch_id=self.epoch.epoch_id,
-            budget_consumed=_dims(runtime.budget_consumed),
-            accounting=accounting,
+        return reserve_node_attempt(
+            ledger=self.ledger,
+            epoch=self.epoch,
+            node=node,
+            runtime=runtime,
+            adapter=self.adapter,
+            fallback_adapter=self.fallback_adapter,
+            graph=self.graph,
         )
 
     def _fallback_attempt(
