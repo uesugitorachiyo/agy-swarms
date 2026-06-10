@@ -43,6 +43,7 @@ def test_architecture_doc_describes_command_conductor_and_helper_boundaries():
         "agy_swarms/conductor_fallback.py",
         "agy_swarms/conductor_pipeline.py",
         "agy_swarms/conductor_drift.py",
+        "agy_swarms/conductor_retry.py",
         "scripts/release_health.py",
         "scripts/release_health_registry.py",
     ):
@@ -58,6 +59,7 @@ def test_conductor_helper_contracts_live_in_focused_test_module():
         "test_checkpointing_helper_is_importable",
         "test_pipeline_helper_is_importable",
         "test_drift_helper_is_importable",
+        "test_conductor_retry_module_exports_failure_policy_helpers",
     ):
         assert expected_name in helper_tests
     assert "_helper_is_importable" not in conductor_tests

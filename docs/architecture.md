@@ -42,6 +42,7 @@ Helper modules keep repeated mechanics type-checkable and easier to review:
 - `agy_swarms/conductor_fallback.py` owns fallback adapter selection, model-switch event construction, and the mechanical fallback dispatch attempt.
 - `agy_swarms/conductor_pipeline.py` owns per-item staged pipeline execution while receiving conductor-owned callbacks for cache, journal, key, and classification behavior.
 - `agy_swarms/conductor_reports.py` defines `RunReport` and `PipelineItemResult`.
+- `agy_swarms/conductor_retry.py` owns failure classification and retry eligibility predicates.
 - `agy_swarms/conductor_review.py` dispatches reviewer and closer nodes through review routing.
 - `agy_swarms/conductor_review_budget.py` builds review budget alert and closer auto-triage events.
 

@@ -18,6 +18,8 @@ All notable release-engineering milestones for this repository are recorded here
   workflow before publishing artifacts.
 - Added `actionlint` workflow linting to the fast verification facade so GitHub
   Actions syntax is checked before workflow runtime.
+- Extracted conductor failure classification and retry eligibility helpers into
+  a focused typed module.
 
 ## v0.5.3 - 2026-06-09
 
