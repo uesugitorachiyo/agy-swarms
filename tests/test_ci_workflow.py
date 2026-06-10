@@ -188,6 +188,19 @@ def test_release_workflow_verifies_and_attaches_package_artifacts():
     assert "--verify-tag" in workflow
 
 
+def test_release_workflow_self_checks_published_assets_after_publish():
+    workflow = _release_workflow_text()
+
+    publish_index = workflow.index("gh release create")
+    verify_index = workflow.index("scripts/verify_release_assets.py")
+
+    assert "Verify Published Release Assets" in workflow
+    assert "GH_TOKEN: ${{ github.token }}" in workflow
+    assert '--tag "$RELEASE_TAG"' in workflow
+    assert "--repo uesugitorachiyo/agy-swarms" in workflow
+    assert publish_index < verify_index
+
+
 def test_release_workflow_serializes_publishing_by_tag_and_does_not_write_cache():
     workflow = _release_workflow_text()
 

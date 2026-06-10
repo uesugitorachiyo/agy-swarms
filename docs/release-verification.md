@@ -123,8 +123,11 @@ make verify
 It then rebuilds the package artifacts with `uv build`, writes
 `dist/SHA256SUMS.txt` with `scripts/release_artifact_manifest.py`, and attaches
 `dist/*.whl`, `dist/*.tar.gz`, and `dist/SHA256SUMS.txt` to the GitHub Release
-using generated release notes. This workflow publishes only GitHub Releases; it
-does not publish to PyPI or any package index.
+using generated release notes. After `gh release create` succeeds, the workflow
+runs `scripts/verify_release_assets.py` against the published tag so the Release
+job fails if any uploaded package artifact is missing, unexpected, or mismatched
+with `SHA256SUMS.txt`. This workflow publishes only GitHub Releases; it does not
+publish to PyPI or any package index.
 
 To verify published release assets locally, run:
 

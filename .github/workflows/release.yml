@@ -76,3 +76,11 @@ jobs:
             --title "$RELEASE_TAG" \
             --generate-notes \
             --verify-tag
+
+      - name: Verify Published Release Assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          uv run python scripts/verify_release_assets.py \
+            --tag "$RELEASE_TAG" \
+            --repo uesugitorachiyo/agy-swarms
