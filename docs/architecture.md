@@ -39,6 +39,7 @@ Helper modules keep repeated mechanics type-checkable and easier to review:
 - `agy_swarms/conductor_checkpointing.py` owns checkpoint cache predicates, runtime hydration from journal hits, journal-entry builders, and pipeline stage keys.
 - `agy_swarms/conductor_codex_batch.py` owns eligibility and dispatch mechanics for batching parallel Codex review nodes.
 - `agy_swarms/conductor_commands.py` runs local command nodes through the command runner abstraction.
+- `agy_swarms/conductor_dispatch.py` owns role-specific single-attempt dispatch for reducer, command, review, and worker nodes.
 - `agy_swarms/conductor_drift.py` adapts optional conductor lockfiles to `validate.check_drift(...)` and copies drift records for reports.
 - `agy_swarms/conductor_fallback.py` owns fallback adapter selection, model-switch event construction, and the mechanical fallback dispatch attempt.
 - `agy_swarms/conductor_pipeline.py` owns per-item staged pipeline execution while receiving conductor-owned callbacks for cache, journal, key, and classification behavior.
