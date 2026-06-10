@@ -59,7 +59,7 @@ def test_versioning_policy_records_050_release_gate():
 def test_package_version_matches_v050_release():
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.5.5"
+    assert pyproject["project"]["version"] == "0.5.6"
 
 
 def test_lockfile_package_version_matches_pyproject():
