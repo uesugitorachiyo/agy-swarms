@@ -38,6 +38,7 @@ uv lock
 ```text
 agy_swarms-<version>-py3-none-any.whl
 agy_swarms-<version>.tar.gz
+SHA256SUMS.txt
 ```
 
 ## 3. Verify Locally
@@ -121,6 +122,14 @@ gh release view v<version> --json tagName,name,isDraft,isPrerelease,url,assets
 
 The release must be non-draft, non-prerelease unless intentionally marked
 otherwise, and it must include both the wheel and source distribution.
+It must also include `SHA256SUMS.txt`.
+
+After downloading all three assets into one directory, verify the checksum
+manifest:
+
+```bash
+sha256sum --check SHA256SUMS.txt
+```
 
 ## 7. Capture Final Evidence
 
@@ -132,6 +141,7 @@ Record the final evidence in the release PR, changelog, or handoff note:
 - Release workflow result.
 - GitHub Release URL.
 - Wheel and source distribution asset names.
+- `SHA256SUMS.txt` asset name and checksum verification result.
 
 Leave the checkout clean:
 

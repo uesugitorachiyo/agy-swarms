@@ -120,10 +120,18 @@ version with `scripts/verify_release_tag.py`, and runs:
 make verify
 ```
 
-It then rebuilds the package artifacts with `uv build` and attaches both
-`dist/*.whl` and `dist/*.tar.gz` to the GitHub Release using generated release
-notes. This workflow publishes only GitHub Releases; it does not publish to
-PyPI or any package index.
+It then rebuilds the package artifacts with `uv build`, writes
+`dist/SHA256SUMS.txt` with `scripts/release_artifact_manifest.py`, and attaches
+`dist/*.whl`, `dist/*.tar.gz`, and `dist/SHA256SUMS.txt` to the GitHub Release
+using generated release notes. This workflow publishes only GitHub Releases; it
+does not publish to PyPI or any package index.
+
+To verify downloaded release assets locally, place the wheel, source
+distribution, and `SHA256SUMS.txt` in one directory and run:
+
+```bash
+sha256sum --check SHA256SUMS.txt
+```
 
 The tag/version guard is covered by `tests/test_release_tag_guard.py` so the
 release workflow does not rely on untested inline shell logic.

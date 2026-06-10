@@ -63,12 +63,14 @@ jobs:
         run: |
           rm -rf dist
           uv build
+          uv run python scripts/release_artifact_manifest.py dist/*.tar.gz dist/*.whl
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$RELEASE_TAG" \
+            dist/SHA256SUMS.txt \
             dist/*.tar.gz \
             dist/*.whl \
             --title "$RELEASE_TAG" \
