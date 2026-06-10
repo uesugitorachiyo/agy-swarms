@@ -10,15 +10,15 @@ on `main`.
 
 ## Current package release
 
-The current package version is `0.5.4`, released after GitHub Release
-publishing, branch-protection policy for automatic pull requests and pushes to
-`main`, workflow linting, Windows VS2026 runner policy, and conductor helper
-extractions landed. The matching release tag is `v0.5.4`.
+The current package version is `0.5.5`, released after cross-platform GitHub
+Release asset verification, checksum-manifest hardening, automatic pull requests
+and pushes to `main`, and conductor accounting helper extraction landed. The
+matching release tag is `v0.5.5`.
 
 Before the release cut, the package stayed at `0.0.0` while release mechanics,
 documentation, CI-safe checks, and packaging smoke tests were hardened.
 
-The previous package release was `0.5.3`, with matching release tag `v0.5.3`.
+The previous package release was `0.5.4`, with matching release tag `v0.5.4`.
 
 ## Future release gate
 
