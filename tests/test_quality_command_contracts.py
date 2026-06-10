@@ -215,6 +215,7 @@ def test_makefile_typecheck_covers_full_package_and_release_health_modules():
     for checked_path in (
         "agy_swarms",
         "scripts/disk_space_preflight.py",
+        "scripts/release_artifact_manifest.py",
         "scripts/release_health.py",
         "scripts/release_health_registry.py",
         "scripts/release_health_docs.py",

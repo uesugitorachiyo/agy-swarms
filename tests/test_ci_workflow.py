@@ -173,6 +173,8 @@ def test_release_workflow_verifies_and_attaches_package_artifacts():
     assert "scripts/verify_release_tag.py" in workflow
     assert "make verify" in workflow
     assert "uv build" in workflow
+    assert "scripts/release_artifact_manifest.py" in workflow
+    assert "dist/SHA256SUMS.txt" in workflow
     assert "dist/*.tar.gz" in workflow
     assert "dist/*.whl" in workflow
     assert "gh release create" in workflow
@@ -200,6 +202,8 @@ def test_release_docs_explain_github_release_publishing():
     assert "`v*`" in docs
     assert "dist/*.whl" in docs
     assert "dist/*.tar.gz" in docs
+    assert "SHA256SUMS.txt" in docs
+    assert "sha256sum --check" in docs
 
 
 def test_release_docs_explain_concurrency_and_cache_policy():
