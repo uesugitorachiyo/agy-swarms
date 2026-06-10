@@ -22,6 +22,8 @@ All notable release-engineering milestones for this repository are recorded here
   a focused typed module.
 - Extracted Codex review batch dispatch mechanics from the conductor into a
   focused helper module.
+- Updated the Windows CI runner and branch-protection check from `windows-2025`
+  to `windows-2025-vs2026`.
 
 ## v0.5.3 - 2026-06-09
 

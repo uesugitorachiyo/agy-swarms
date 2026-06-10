@@ -67,7 +67,7 @@ deterministic path on:
 
 - `ubuntu-latest`
 - `macos-latest`
-- `windows-2025`
+- `windows-2025-vs2026`
 
 Each matrix job runs:
 
@@ -92,9 +92,11 @@ The workflow sets `PYTHONIOENCODING=utf-8` and the release health output uses
 ASCII status markers (`[OK]` / `[FAIL]`) so Windows CP1252/charmap terminals do
 not fail on status output.
 
-The Windows matrix leg is pinned to `windows-2025` instead of `windows-latest`
-so hosted verification does not change when GitHub retargets the floating
-Windows label.
+The Windows matrix leg is pinned to `windows-2025-vs2026` instead of
+`windows-latest` so hosted verification does not change when GitHub retargets
+the floating Windows label. This also follows GitHub's hosted-runner notice that
+`windows-2025` requests are redirected to `windows-2025-vs2026` by June 15,
+2026.
 
 The CI workflow uses a concurrency group per workflow and pull request or ref.
 It cancels superseded pull request runs for faster feedback, but does not cancel `main` push runs so post-merge release evidence can finish. The `setup-uv`
