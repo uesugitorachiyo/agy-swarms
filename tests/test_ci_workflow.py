@@ -209,7 +209,8 @@ def test_release_docs_explain_github_release_publishing():
     assert "dist/*.whl" in docs
     assert "dist/*.tar.gz" in docs
     assert "SHA256SUMS.txt" in docs
-    assert "sha256sum --check" in docs
+    assert "scripts/verify_release_assets.py" in docs
+    assert "gh release download" in docs
 
 
 def test_release_docs_explain_concurrency_and_cache_policy():

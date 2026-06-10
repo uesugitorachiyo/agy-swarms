@@ -16,7 +16,7 @@ format-check:
 	uv run ruff format --check .
 
 type-check:
-	uv run mypy --explicit-package-bases agy_swarms scripts/disk_space_preflight.py scripts/release_artifact_manifest.py scripts/release_health.py scripts/release_health_registry.py scripts/release_health_docs.py scripts/rewrite_release_health_docs.py scripts/verify_release_tag.py
+	uv run mypy --explicit-package-bases agy_swarms scripts/disk_space_preflight.py scripts/release_artifact_manifest.py scripts/release_health.py scripts/release_health_registry.py scripts/release_health_docs.py scripts/rewrite_release_health_docs.py scripts/verify_release_assets.py scripts/verify_release_tag.py
 
 test:
 	uv run python -m pytest -q
@@ -36,4 +36,4 @@ verify-fast: disk-preflight workflow-lint lint format-check type-check verify-do
 verify: verify-fast release-health
 
 pr-verification:
-	uv run python scripts/pr_verification.py --pr "$${PR_NUMBER:?set PR_NUMBER}" --pytest-count "$${PYTEST_COUNT:-752}" --mypy-files "$${MYPY_FILES:-101}" --release-health-passed "$${RELEASE_HEALTH_PASSED:-24}" --release-health-total "$${RELEASE_HEALTH_TOTAL:-24}"
+	uv run python scripts/pr_verification.py --pr "$${PR_NUMBER:?set PR_NUMBER}" --pytest-count "$${PYTEST_COUNT:-764}" --mypy-files "$${MYPY_FILES:-103}" --release-health-passed "$${RELEASE_HEALTH_PASSED:-24}" --release-health-total "$${RELEASE_HEALTH_TOTAL:-24}"
