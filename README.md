@@ -96,7 +96,9 @@ checklist lives in
 [docs/release-operator-checklist.md](docs/release-operator-checklist.md).
 Required hosted merge checks are recorded in
 [docs/branch-protection.md](docs/branch-protection.md). Architecture boundaries
-are summarized in [docs/architecture.md](docs/architecture.md).
+are summarized in [docs/architecture.md](docs/architecture.md). Dependency
+update automation is documented in
+[docs/dependency-updates.md](docs/dependency-updates.md).
 
 ## Safety Model
 

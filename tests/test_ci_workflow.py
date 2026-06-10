@@ -5,9 +5,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 RELEASE_WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
+DEPENDABOT_CONFIG = ROOT / ".github" / "dependabot.yml"
 BRANCH_PROTECTION = ROOT / ".github" / "branch-protection.json"
 BRANCH_PROTECTION_DOC = ROOT / "docs" / "branch-protection.md"
 RELEASE_DOC = ROOT / "docs" / "release-verification.md"
+DEPENDENCY_UPDATES_DOC = ROOT / "docs" / "dependency-updates.md"
 
 REQUIRED_MAIN_STATUS_CHECKS = [
     "Fast Checks (ubuntu-latest)",
@@ -24,6 +26,10 @@ def _workflow_text() -> str:
 
 def _release_workflow_text() -> str:
     return RELEASE_WORKFLOW.read_text(encoding="utf-8")
+
+
+def _dependabot_text() -> str:
+    return DEPENDABOT_CONFIG.read_text(encoding="utf-8")
 
 
 def _branch_protection_policy() -> dict:
@@ -213,3 +219,32 @@ def test_release_docs_explain_concurrency_and_cache_policy():
     assert "does not cancel `main` push runs" in docs
     assert "distinct `setup-uv` cache suffixes" in docs
     assert "release workflow serializes publishing per tag" in docs
+
+
+def test_dependabot_config_updates_github_actions_and_uv_dependencies():
+    config = _dependabot_text()
+
+    assert "version: 2" in config
+    assert 'package-ecosystem: "github-actions"' in config
+    assert 'package-ecosystem: "uv"' in config
+    assert config.count('directory: "/"') == 2
+    assert config.count('interval: "weekly"') == 2
+    assert config.count("open-pull-requests-limit: 5") == 2
+    assert 'prefix: "deps"' in config
+    assert "dependencies" in config
+    assert "ci" in config
+    assert "github-actions:" in config
+    assert 'patterns: ["*"]' in config
+    assert "python-dependencies:" in config
+
+
+def test_dependabot_docs_explain_update_policy():
+    docs = DEPENDENCY_UPDATES_DOC.read_text(encoding="utf-8")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert ".github/dependabot.yml" in docs
+    assert "GitHub Actions" in docs
+    assert "uv" in docs
+    assert "weekly" in docs
+    assert "make verify" in docs
+    assert "docs/dependency-updates.md" in readme
