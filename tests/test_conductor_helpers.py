@@ -4,12 +4,13 @@ from types import SimpleNamespace
 
 from agy_swarms.adapters.scripted import ScriptedAdapter
 from agy_swarms.budget import Dims
-from agy_swarms.conductor import RunReport, classify
+from agy_swarms.conductor import RunReport, classify, retry_eligible
 from agy_swarms.lockfile import Lockfile
 from agy_swarms.types import (
     DriftRecord,
     Epoch,
     ErrorClass,
+    FailureClass,
     NodeRuntimeState,
     NodeSpec,
     NodeStatus,
@@ -53,6 +54,21 @@ def test_conductor_report_module_exports_report_shapes():
     from agy_swarms.conductor_reports import RunReport as ExtractedRunReport
 
     assert ExtractedRunReport is RunReport
+
+
+def test_conductor_retry_module_exports_failure_policy_helpers():
+    from agy_swarms.conductor_retry import classify as extracted_classify
+    from agy_swarms.conductor_retry import retry_eligible as extracted_retry_eligible
+
+    assert extracted_classify is classify
+    assert extracted_retry_eligible is retry_eligible
+    assert extracted_classify(_env("failed", ErrorClass.TRANSPORT)) == FailureClass.TRANSIENT
+    assert extracted_retry_eligible(
+        extracted_classify(_env("failed", ErrorClass.TRANSPORT)),
+        ErrorClass.TRANSPORT,
+        1,
+        ("transport",),
+    )
 
 
 def test_conductor_budget_helpers_are_importable():

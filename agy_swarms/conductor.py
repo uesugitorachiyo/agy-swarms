@@ -56,6 +56,7 @@ from .conductor_fallback import (
 )
 from .conductor_reports import PipelineItemResult, RunReport
 from .conductor_pipeline import run_pipeline_item
+from .conductor_retry import classify, retry_eligible
 from .conductor_review import run_review_node
 from .conductor_review_budget import review_budget_events
 from .lockfile import Lockfile
@@ -83,59 +84,6 @@ __all__ = [
     "classify",
     "retry_eligible",
 ]
-
-
-# --- §D.2 failure classification -------------------------------------------
-
-# The total error_class → FailureClass table (§D.2). ``none`` maps to ``None`` so the
-# fail-closed branch (a non-succeeded status carrying ``none``) resolves to Deterministic.
-_ERROR_TO_FAILURE: dict[ErrorClass, FailureClass | None] = {
-    ErrorClass.NONE: None,
-    ErrorClass.SCHEMA_INVALID: FailureClass.TRANSIENT,
-    ErrorClass.TRANSPORT: FailureClass.TRANSIENT,
-    ErrorClass.TIMEOUT: FailureClass.TRANSIENT,
-    ErrorClass.TOOL: FailureClass.TRANSIENT,
-    ErrorClass.AUTH: FailureClass.DETERMINISTIC,
-    ErrorClass.BUDGET: FailureClass.BUDGET,
-    ErrorClass.UNKNOWN: FailureClass.DETERMINISTIC,
-}
-
-
-def classify(envelope: ResultEnvelope) -> FailureClass | None:
-    """Derive the §D.2 ``FailureClass`` (retry verdict) from a result envelope.
-
-    ``null`` iff ``status==succeeded``. A worker/orchestrator-set ``failure_class`` takes
-    precedence; an orchestrator ``timed_out`` kill is ``Transient``; otherwise the total
-    ``error_class`` table applies, with the fail-closed default (a failed status carrying
-    ``none``/``unknown``) resolving to ``Deterministic`` — never retryable-by-default.
-    """
-    if envelope.status == "succeeded":
-        return None
-    if envelope.failure_class is not None:
-        return envelope.failure_class
-    if envelope.status == "timed_out":
-        return FailureClass.TRANSIENT
-    derived = _ERROR_TO_FAILURE.get(envelope.error_class, FailureClass.DETERMINISTIC)
-    return derived if derived is not None else FailureClass.DETERMINISTIC
-
-
-def retry_eligible(
-    failure_class: FailureClass | None,
-    error_class: ErrorClass,
-    remaining_retries: int,
-    retryable_error_classes: tuple[str, ...],
-) -> bool:
-    """The normative §D.2 retry predicate (budget admission is checked separately).
-
-    ``running→ready`` iff ``failure_class==Transient`` AND ``remaining_retries>0`` AND the
-    envelope's ``error_class`` is in the node's ``retryable_error_classes`` (a per-node
-    *narrowing* of the Transient set — it can only subtract, never promote).
-    """
-    return (
-        failure_class == FailureClass.TRANSIENT
-        and remaining_retries > 0
-        and error_class in retryable_error_classes
-    )
 
 
 # --- the conductor ----------------------------------------------------------
