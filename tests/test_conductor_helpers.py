@@ -71,6 +71,32 @@ def test_conductor_retry_module_exports_failure_policy_helpers():
     )
 
 
+def test_conductor_codex_batch_helper_is_importable():
+    from agy_swarms.conductor_codex_batch import can_codex_review_batch
+    from agy_swarms.conductor_codex_batch import dispatch_codex_review_batch
+
+    nodes = {
+        "rev_a": NodeSpec(id="rev_a", role="reviewer", objective="review A"),
+        "rev_b": NodeSpec(id="rev_b", role="reviewer", objective="review B"),
+    }
+
+    assert dispatch_codex_review_batch is not None
+    assert can_codex_review_batch(
+        batch=["rev_a", "rev_b"],
+        checkpoint=None,
+        nodes_by_id=nodes,
+        reviewer="codex",
+        closer="codex",
+    )
+    assert not can_codex_review_batch(
+        batch=["rev_a"],
+        checkpoint=None,
+        nodes_by_id=nodes,
+        reviewer="codex",
+        closer="codex",
+    )
+
+
 def test_conductor_budget_helpers_are_importable():
     from agy_swarms.conductor_budget import (
         actual_from_envelope,

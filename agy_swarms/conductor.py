@@ -38,6 +38,7 @@ from .conductor_budget import (
     dims_from_consumed as _dims,
 )
 from .conductor_adapters import adapter_crash_envelope
+from .conductor_codex_batch import dispatch_codex_review_batch
 from .conductor_commands import run_command_node
 from .conductor_checkpointing import (
     adopt_cached_runtime,
@@ -171,84 +172,29 @@ class Conductor:
         This deliberately does not run under checkpoint mode yet; resume/cache semantics
         stay on the single-node path until batch journal records are designed.
         """
-        if not self._can_codex_batch(batch):
-            return False
-
-        from .adapters.codex import CodexAdapter
-
-        prepared: list[tuple[NodeSpec, Any]] = []
-        for node_id in batch:
-            node = self._by_id[node_id]
-            runtime = self.runtime[node.id]
-            node.idempotency_key = compute_idempotency_key(
-                node, self._resolve_inputs(node), self.tool_registry
-            )
-            self._restore_runtime(node, runtime)
-            self.scheduler.mark(node.id, NodeStatus.READY)
-            admission = self._reserve(node, runtime)
-            if not admission.admitted:
-                for prepared_node, _ in prepared:
-                    self.ledger.release(self.epoch.epoch_seq, prepared_node.id)
-                self._budget_stopped = True
-                self._add_blocker(
-                    node.id, "budget exhausted before dispatch", admission.reason or "global"
-                )
-                return True
-            self.scheduler.mark(node.id, NodeStatus.RESERVED)
-            runtime.reservation_id = admission.reservation_id
-            self.scheduler.mark(node.id, NodeStatus.RUNNING)
-            runtime.attempt += 1
-            prepared.append((node, runtime))
-
-        nodes = [node for node, _ in prepared]
-        try:
-            envelopes = CodexAdapter(telemetry_path=self.review_telemetry_path).run_batch(nodes)
-        except Exception as exc:
-            envelopes = [adapter_crash_envelope(node, exc) for node in nodes]
-
-        envelope_by_id = {envelope.node_id: envelope for envelope in envelopes}
-        for node, runtime in prepared:
-            envelope = envelope_by_id.get(node.id)
-            if envelope is None:
-                envelope = ResultEnvelope(
-                    node_id=node.id,
-                    idempotency_key=node.idempotency_key,
-                    status="failed",
-                    error_class=ErrorClass.SCHEMA_INVALID,
-                    artifact={"missing_batch_result": node.id},
-                )
-            self._stamp(envelope, node, runtime)
-            actual = commit_actual_usage(
-                ledger=self.ledger,
-                epoch_seq=self.epoch.epoch_seq,
-                node_id=node.id,
-                runtime=runtime,
-                actual=actual_from_envelope(envelope),
-                accounting="exact",
-            )
-            runtime.error_class = envelope.error_class
-            if classify(envelope) is None:
-                self.scheduler.mark(node.id, NodeStatus.SUCCEEDED)
-            else:
-                self.scheduler.mark(node.id, NodeStatus.FAILED)
-                self._add_blocker(node.id, "node failed", envelope.error_class.value)
-            self.results[node.id] = envelope
-            self._maybe_record_review_budget_alert(node, actual)
-        return True
-
-    def _can_codex_batch(self, batch: list[str]) -> bool:
-        if self.checkpoint is not None or len(batch) < 2:
-            return False
-        from .hybrid_review import route_review_role
-
-        for node_id in batch:
-            node = self._by_id[node_id]
-            if node.role not in ("reviewer", "closer"):
-                return False
-            adapter_name = self.reviewer if node.role == "reviewer" else self.closer
-            if route_review_role(node.role, adapter=adapter_name).adapter != "codex":
-                return False
-        return True
+        result = dispatch_codex_review_batch(
+            batch=batch,
+            checkpoint=self.checkpoint,
+            nodes_by_id=self._by_id,
+            runtime_by_id=self.runtime,
+            tool_registry=self.tool_registry,
+            scheduler=self.scheduler,
+            ledger=self.ledger,
+            epoch=self.epoch,
+            reviewer=self.reviewer,
+            closer=self.closer,
+            review_telemetry_path=self.review_telemetry_path,
+            resolve_inputs=self._resolve_inputs,
+            restore_runtime=self._restore_runtime,
+            reserve=self._reserve,
+            stamp=self._stamp,
+            add_blocker=self._add_blocker,
+            record_review_budget_alert=self._maybe_record_review_budget_alert,
+            results=self.results,
+        )
+        if result.budget_stopped:
+            self._budget_stopped = True
+        return result.dispatched
 
     def _maybe_record_review_budget_alert(self, node: NodeSpec, actual: Dims) -> None:
         events, self.closer = review_budget_events(

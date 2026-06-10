@@ -20,6 +20,8 @@ All notable release-engineering milestones for this repository are recorded here
   Actions syntax is checked before workflow runtime.
 - Extracted conductor failure classification and retry eligibility helpers into
   a focused typed module.
+- Extracted Codex review batch dispatch mechanics from the conductor into a
+  focused helper module.
 
 ## v0.5.3 - 2026-06-09
 
