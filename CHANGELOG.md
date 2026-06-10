@@ -4,6 +4,23 @@ All notable release-engineering milestones for this repository are recorded here
 
 ## Unreleased
 
+## v0.5.5 - 2026-06-10
+
+This release packages the post-0.5.4 release-hardening work, including
+cross-platform GitHub Release asset verification and the latest conductor helper
+extraction.
+
+- Added a Python release asset verifier that downloads GitHub Release assets
+  with `gh release download` and validates `SHA256SUMS.txt` on macOS, Linux, and
+  Windows.
+- Hardened release asset verification to reject malformed manifests, duplicate
+  entries, path entries, missing assets, checksum mismatches, and extra
+  unmanifested assets.
+- Updated the release operator checklist and verification docs to use the
+  cross-platform verifier instead of platform-specific `sha256sum` commands.
+- Extracted conductor accounting and usage aggregation helpers into a focused
+  typed module.
+
 ## v0.5.4 - 2026-06-10
 
 This release packages the hosted-release and repository-hardening work after

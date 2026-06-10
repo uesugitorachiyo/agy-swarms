@@ -14,7 +14,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/6f/0b/3f29683dfbe94208f
 
 [[package]]
 name = "agy-swarms"
-version = "0.5.4"
+version = "0.5.5"
 source = { editable = "." }
 
 [package.optional-dependencies]
