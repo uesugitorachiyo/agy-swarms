@@ -108,7 +108,7 @@ cache entries; only `main` runs save CI caches.
 
 `.github/workflows/release.yml` publishes GitHub Release artifacts for version
 tags matching `v*`. The workflow can also be rerun manually with
-`workflow_dispatch` by providing an existing tag, such as `v0.5.3`.
+`workflow_dispatch` by providing an existing tag, such as `v0.5.4`.
 Use `docs/release-operator-checklist.md` for the full operator sequence from
 version bump through final evidence capture.
 

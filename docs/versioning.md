@@ -10,15 +10,15 @@ on `main`.
 
 ## Current package release
 
-The current package version is `0.5.3`, released after verification disk
-preflight, automatic pull requests and pushes to `main` CI, PR verification
-evidence cleanup, and repository-hardening verification updates landed. The
-matching release tag is `v0.5.3`.
+The current package version is `0.5.4`, released after GitHub Release
+publishing, branch-protection policy for automatic pull requests and pushes to
+`main`, workflow linting, Windows VS2026 runner policy, and conductor helper
+extractions landed. The matching release tag is `v0.5.4`.
 
 Before the release cut, the package stayed at `0.0.0` while release mechanics,
 documentation, CI-safe checks, and packaging smoke tests were hardened.
 
-The previous package release was `0.5.2`, with matching release tag `v0.5.2`.
+The previous package release was `0.5.3`, with matching release tag `v0.5.3`.
 
 ## Future release gate
 

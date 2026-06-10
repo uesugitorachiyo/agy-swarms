@@ -4,12 +4,18 @@ All notable release-engineering milestones for this repository are recorded here
 
 ## Unreleased
 
+## v0.5.4 - 2026-06-10
+
+This release packages the hosted-release and repository-hardening work after
+v0.5.3, including GitHub Release publication, workflow linting, Windows runner
+policy updates, and continued conductor modularization.
+
 - Added a repository-local branch-protection policy and docs for the required
   `main` merge gate.
 - Added a tag-driven GitHub Release publishing workflow for wheel and source
   distribution artifacts.
-- Pinned Windows CI to `windows-2025` and updated the required merge check name
-  to avoid the floating `windows-latest` runner redirect.
+- Pinned Windows CI away from the floating `windows-latest` label and updated
+  the required merge check name.
 - Added workflow concurrency and uv cache-save policy to cancel superseded pull
   request CI runs while preserving `main` and release evidence.
 - Added a release operator checklist covering version bump, changelog, tag,
@@ -22,8 +28,8 @@ All notable release-engineering milestones for this repository are recorded here
   a focused typed module.
 - Extracted Codex review batch dispatch mechanics from the conductor into a
   focused helper module.
-- Updated the Windows CI runner and branch-protection check from `windows-2025`
-  to `windows-2025-vs2026`.
+- Updated the Windows CI runner and branch-protection check to
+  `windows-2025-vs2026`.
 
 ## v0.5.3 - 2026-06-09
 
