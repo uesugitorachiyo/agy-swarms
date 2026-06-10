@@ -37,9 +37,7 @@ from .conductor_budget import (
     commit_actual_usage,
     dims_from_consumed as _dims,
 )
-from .conductor_adapters import adapter_crash_envelope
 from .conductor_codex_batch import dispatch_codex_review_batch
-from .conductor_commands import run_command_node
 from .conductor_checkpointing import (
     adopt_cached_runtime,
     build_node_journal_entry,
@@ -49,6 +47,7 @@ from .conductor_checkpointing import (
     persisted_runtime_matches,
     pipeline_stage_key,
 )
+from .conductor_dispatch import RunNodeAttemptDeps, run_node_attempt
 from .conductor_drift import collect_drift_records, report_drift_records
 from .conductor_fallback import (
     execute_fallback_run,
@@ -58,17 +57,14 @@ from .conductor_fallback import (
 from .conductor_reports import PipelineItemResult, RunReport
 from .conductor_pipeline import run_pipeline_item
 from .conductor_retry import classify, retry_eligible
-from .conductor_review import run_review_node
 from .conductor_review_budget import review_budget_events
 from .lockfile import Lockfile
 from .model_routing import route_model_tier
-from .reducers import run_reducer
 from .runners import subprocess_runner
 from .scheduler import Scheduler
 from .types import (
     DriftRecord,
     Epoch,
-    ErrorClass,
     FailureClass,
     NodeSpec,
     NodeStatus,
@@ -302,95 +298,27 @@ class Conductor:
             return envelope
 
     def _run_node(self, node: NodeSpec, runtime: Any, *, reservation_id: Any) -> ResultEnvelope:
-        """One attempt's envelope: a reducer node merges its committed child artifacts in
-        code (§D.3 — node-id-sorted, double-executed for purity); every other role
-        dispatches to the worker adapter. Reducer output is zero-token, so it flows through
-        the same reserve->commit->classify->journal path as any node."""
-        if node.role == "reducer" and node.reducer is not None:
-            children = [
-                {"node_id": dep_id, "artifact": self.results[dep_id].artifact}
-                for dep_id in node.dependencies
-                if dep_id in self.results and self.results[dep_id].status == "succeeded"
-            ]
-            merged = run_reducer(node.reducer, children, registry=self.reducer_registry)
-            return ResultEnvelope(
-                node_id=node.id,
-                idempotency_key=node.idempotency_key,
-                status="succeeded",
-                error_class=ErrorClass.NONE,
-                artifact=merged.artifact,
-                concerns=merged.concerns,
-                token_usage={
-                    "input": 0,
-                    "thinking": 0,
-                    "output": 0,
-                    "cached": 0,
-                    "accounting": "exact",
-                },
-            )
-        if node.role in ("test", "verify"):
-            # FR-34: a test/verify node runs its declared command via the injected runner
-            # (not the worker adapter). Nonzero exit ⇒ failed; the code is classified by
-            # classify_exit (AC-38/D-5: a clean nonzero is TOOL, a signal-kill's negative
-            # code is TIMEOUT) — both →Transient, so it is retried only if policy opts in and
-            # is NEVER model-fallback'd (a failing test is a verification result, not a model
-            # failure). Exit code → artifact, stdout/stderr → stdout_ref (§D.2); dependents
-            # transitively skip (FR-5.1).
-            return run_command_node(node, self.command_runner(node.command or []))
-
-        active_adapter = self.adapter
-        if node.role not in ("reducer", "test", "verify"):
-            entry = self.ledger.entries.get((self.epoch.epoch_seq, node.id))
-            reserved_dims = entry.reserved if entry is not None else Dims()
-            remaining_budget = self.ledger.available + reserved_dims
-            high_value = getattr(node, "high_value", False) or getattr(
-                self.graph, "high_value", False
-            )
-            decision = route_model_tier(
-                node,
-                failed_attempts=runtime.attempt,
-                high_value=high_value,
-                remaining_budget=remaining_budget,
-            )
-            if decision.escalated and self.fallback_adapter is not None:
-                if self.fallback_adapter.covers(node.required_capabilities):
-                    active_adapter = self.fallback_adapter
-                    self.events.append(
-                        {
-                            "type": "model_switch",
-                            "node_id": node.id,
-                            "from": getattr(self.adapter, "name", "primary"),
-                            "to": getattr(self.fallback_adapter, "name", "fallback"),
-                            "error_class": runtime.error_class.value
-                            if hasattr(runtime, "error_class")
-                            else "none",
-                        }
-                    )
-                else:
-                    self._add_blocker(
-                        node.id, "fallback misses required capabilities", "fallback_uncovered"
-                    )
-
-        if node.role in ("reviewer", "closer"):
-            return run_review_node(
-                node,
-                active_adapter=active_adapter,
-                attempt=runtime.attempt,
-                reservation_id=reservation_id,
-                adapter_name=self.reviewer if node.role == "reviewer" else self.closer,
-                telemetry_path=self.review_telemetry_path,
-            )
-
-        # AC-38/NFR-8 containment: a worker adapter that RAISES is caught and turned into a
-        # failed envelope rather than propagated — a crashing worker must never take down the
-        # conductor. The crash is opaque (no exit code, no envelope) ⇒ UNKNOWN → Deterministic
-        # (§D.2 fail-closed); the exception is surfaced via stdout_ref for the blocker.
-        # OS-level isolation (FR-12 worktree / NFR-8 hermetic FS) is Phase-2 — this is the
-        # in-process containment seam. KeyboardInterrupt/SystemExit (BaseException) propagate.
-        try:
-            return active_adapter.run(node, attempt=runtime.attempt, reservation_id=reservation_id)
-        except Exception as exc:
-            return adapter_crash_envelope(node, exc)
+        """Run one role-specific attempt while keeping retry/accounting orchestration here."""
+        return run_node_attempt(
+            node,
+            runtime,
+            reservation_id=reservation_id,
+            deps=RunNodeAttemptDeps(
+                adapter=self.adapter,
+                fallback_adapter=self.fallback_adapter,
+                graph=self.graph,
+                ledger=self.ledger,
+                epoch=self.epoch,
+                command_runner=self.command_runner,
+                reducer_registry=self.reducer_registry,
+                results=self.results,
+                reviewer=self.reviewer,
+                closer=self.closer,
+                review_telemetry_path=self.review_telemetry_path,
+                add_blocker=self._add_blocker,
+                record_event=self.events.append,
+            ),
+        )
 
     def _reserve(self, node: NodeSpec, runtime: Any) -> Any:
         accounting = self.adapter.accounting

@@ -14,7 +14,9 @@ from agy_swarms.types import (
     NodeRuntimeState,
     NodeSpec,
     NodeStatus,
+    Reducer,
     ResultEnvelope,
+    TaskGraph,
 )
 
 
@@ -185,6 +187,54 @@ def test_review_dispatch_helper_is_importable():
 
     assert envelope.status == "succeeded"
     assert envelope.artifact == {"review": True}
+
+
+def test_conductor_dispatch_helper_is_importable():
+    from agy_swarms.conductor_dispatch import RunNodeAttemptDeps, run_node_attempt
+
+    child = _env(artifact={"value": 1})
+    node = NodeSpec(
+        id="merge",
+        role="reducer",
+        objective="merge child artifacts",
+        dependencies=["child"],
+        reducer=Reducer(kind="concat"),
+    )
+    node.idempotency_key = "key-merge"
+    runtime = NodeRuntimeState(node_id="merge", attempt=1)
+    blockers: list[tuple[str, str, str]] = []
+    events: list[dict[str, object]] = []
+
+    deps = RunNodeAttemptDeps(
+        adapter=ScriptedAdapter({}),
+        fallback_adapter=None,
+        graph=TaskGraph(nodes=[node]),
+        ledger=SimpleNamespace(entries={}, available=Dims(tokens=100)),
+        epoch=_epoch(),
+        command_runner=lambda command: None,
+        reducer_registry={},
+        results={"child": child},
+        reviewer="agy",
+        closer="agy",
+        review_telemetry_path=None,
+        add_blocker=lambda node_id, reason, detail: blockers.append((node_id, reason, detail)),
+        record_event=events.append,
+    )
+
+    envelope = run_node_attempt(node, runtime, reservation_id="res-merge", deps=deps)
+
+    assert envelope.status == "succeeded"
+    assert envelope.error_class == ErrorClass.NONE
+    assert envelope.artifact == {"items": [{"value": 1}]}
+    assert envelope.token_usage == {
+        "input": 0,
+        "thinking": 0,
+        "output": 0,
+        "cached": 0,
+        "accounting": "exact",
+    }
+    assert blockers == []
+    assert events == []
 
 
 def test_fallback_helper_is_importable():
