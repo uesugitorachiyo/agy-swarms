@@ -4,6 +4,18 @@ All notable release-engineering milestones for this repository are recorded here
 
 ## Unreleased
 
+## v0.5.6 - 2026-06-10
+
+This release exercises and packages the Release workflow's post-publish asset
+self-check after the `v0.5.5` GitHub Release verified the checksum manifest path.
+
+- Added a post-publish Release workflow step that verifies the just-created
+  GitHub Release assets with `scripts/verify_release_assets.py`.
+- Updated PR verification evidence defaults for the expanded workflow contract
+  test suite.
+- Documented that the Release workflow now fails if published package artifacts
+  are missing, unexpected, or mismatched with `SHA256SUMS.txt`.
+
 ## v0.5.5 - 2026-06-10
 
 This release packages the post-0.5.4 release-hardening work, including

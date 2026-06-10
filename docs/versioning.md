@@ -10,15 +10,15 @@ on `main`.
 
 ## Current package release
 
-The current package version is `0.5.5`, released after cross-platform GitHub
-Release asset verification, checksum-manifest hardening, automatic pull requests
-and pushes to `main`, and conductor accounting helper extraction landed. The
-matching release tag is `v0.5.5`.
+The current package version is `0.5.6`, released after the GitHub Release
+workflow gained a post-publish asset self-check, cross-platform checksum
+verification, automatic pull requests and pushes to `main`, and conductor
+accounting helper extraction. The matching release tag is `v0.5.6`.
 
 Before the release cut, the package stayed at `0.0.0` while release mechanics,
 documentation, CI-safe checks, and packaging smoke tests were hardened.
 
-The previous package release was `0.5.4`, with matching release tag `v0.5.4`.
+The previous package release was `0.5.5`, with matching release tag `v0.5.5`.
 
 ## Future release gate
 
