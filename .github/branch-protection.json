@@ -6,7 +6,7 @@
         "contexts": [
           "Fast Checks (ubuntu-latest)",
           "Fast Checks (macos-latest)",
-          "Fast Checks (windows-2025)",
+          "Fast Checks (windows-2025-vs2026)",
           "Verify Package Install Modes",
           "Release Health"
         ]

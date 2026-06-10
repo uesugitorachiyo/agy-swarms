@@ -73,7 +73,7 @@ def test_release_docs_explain_cross_platform_verification():
     release_docs = (ROOT / "docs" / "release-verification.md").read_text(encoding="utf-8")
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
-    assert "windows-2025" in release_docs
+    assert "windows-2025-vs2026" in release_docs
     assert "macos-latest" in release_docs
     assert "ubuntu-latest" in release_docs
     assert "workflow_dispatch" in release_docs
