@@ -14,6 +14,17 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  license-policy:
+    name: License Policy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Check License Policy
+        run: scripts/check-license-policy.sh
+
   fast-checks:
     name: Fast Checks (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
