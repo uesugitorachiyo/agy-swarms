@@ -63,6 +63,7 @@ jobs:
         run: |
           rm -rf dist
           uv build
+          scripts/check-license-policy.sh --scan-archives
           uv run python scripts/release_artifact_manifest.py dist/*.tar.gz dist/*.whl
 
       - name: Publish GitHub Release
