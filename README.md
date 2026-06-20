@@ -134,9 +134,4 @@ agy plugin uninstall agy-swarms
 
 ## License
 
-`agy-swarms` is licensed under either of:
-
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
-- MIT License ([LICENSE-MIT](LICENSE-MIT))
-
-Choose whichever license fits your use case.
+`agy-swarms` is licensed under `Apache-2.0`. See `LICENSE`.
