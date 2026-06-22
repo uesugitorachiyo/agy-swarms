@@ -264,17 +264,17 @@ def test_cli_preflight_reports_redacted_invalid_graph_json(tmp_path: Path, capsy
     assert "secret-token-value" not in payload["error"]
 
 
-def test_cli_review_route_defaults_to_agy_for_reviewer_and_closer(capsys):
+def test_cli_review_route_defaults_to_codex_for_reviewer_and_closer(capsys):
     exit_code = main(["review-route"])
 
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["status"] == "review_route_resolved"
-    assert payload["reviewer"]["adapter"] == "agy"
-    assert payload["reviewer"]["auth"] == "oauth"
-    assert payload["reviewer"]["model"] == "gemini-3.5-flash"
-    assert payload["closer"]["adapter"] == "agy"
-    assert payload["closer"]["auth"] == "oauth"
+    assert payload["reviewer"]["adapter"] == "codex"
+    assert payload["reviewer"]["auth"] == "cli-session"
+    assert payload["reviewer"]["model"] == "gpt-5.5"
+    assert payload["closer"]["adapter"] == "codex"
+    assert payload["closer"]["auth"] == "cli-session"
     assert payload["commands_executed"] is False
 
 

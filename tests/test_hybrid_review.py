@@ -48,27 +48,27 @@ def fake_codex_subprocess(monkeypatch):
     monkeypatch.setattr(CodexAdapter, "_run_subprocess", fake_run_subprocess)
 
 
-def test_reviewer_defaults_to_agy_oauth_gemini_flash():
+def test_reviewer_defaults_to_codex():
     route = route_review_role(ReviewRole.REVIEWER)
 
     assert route.role == ReviewRole.REVIEWER
-    assert route.adapter == ReviewAdapter.AGY
-    assert route.transport == "agy"
-    assert route.auth == "oauth"
-    assert route.model == "gemini-3.5-flash"
+    assert route.adapter == ReviewAdapter.CODEX
+    assert route.transport == "codex-cli"
+    assert route.auth == "cli-session"
+    assert route.model == "gpt-5.5"
     assert route.read_only is True
     assert route.temperature == 0
-    assert route.reason == "default_gemini_cli_review"
+    assert route.reason == "user_selected_cli_review"
 
 
-def test_closer_defaults_to_agy_oauth_gemini_flash():
+def test_closer_defaults_to_codex():
     route = route_review_role(ReviewRole.CLOSER)
 
     assert route.role == ReviewRole.CLOSER
-    assert route.adapter == ReviewAdapter.AGY
-    assert route.transport == "agy"
-    assert route.auth == "oauth"
-    assert route.model == "gemini-3.5-flash"
+    assert route.adapter == ReviewAdapter.CODEX
+    assert route.transport == "codex-cli"
+    assert route.auth == "cli-session"
+    assert route.model == "gpt-5.5"
     assert route.read_only is True
     assert route.requires_passing_gates is True
 

@@ -63,7 +63,7 @@ def route_review_role(
 ) -> ReviewRoute:
     """Route a reviewer/closer role without requiring premium subscriptions by default."""
     review_role = _coerce_role(role)
-    review_adapter = _coerce_adapter(adapter or ReviewAdapter.AGY)
+    review_adapter = _coerce_adapter(adapter or ReviewAdapter.CODEX)
     if review_adapter == ReviewAdapter.OFF:
         return ReviewRoute(
             role=review_role,

@@ -102,8 +102,8 @@ class Conductor:
         lockfile: Lockfile | None = None,
         resolved_lockfile: Lockfile | None = None,
         allow_drift: bool = False,
-        reviewer: str = "agy",
-        closer: str = "agy",
+        reviewer: str = "codex",
+        closer: str = "codex",
         review_telemetry_path: str | None = None,
     ) -> None:
         self.graph = graph

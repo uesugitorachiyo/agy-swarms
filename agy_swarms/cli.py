@@ -40,13 +40,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_run.add_argument(
         "--reviewer",
-        default="agy",
+        default="codex",
         choices=["agy", "codex", "claude", "ollama", "llamafile", "off"],
         help="Reviewer adapter: agy, codex, claude, ollama, llamafile, or off.",
     )
     p_run.add_argument(
         "--closer",
-        default="agy",
+        default="codex",
         choices=["agy", "codex", "claude", "ollama", "llamafile", "off"],
         help="Closer adapter: agy, codex, claude, ollama, llamafile, or off.",
     )
@@ -110,13 +110,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_review_route.add_argument(
         "--reviewer",
-        default="agy",
+        default="codex",
         choices=["agy", "codex", "claude", "ollama", "llamafile", "off"],
         help="Reviewer adapter: agy, codex, claude, ollama, llamafile, or off.",
     )
     p_review_route.add_argument(
         "--closer",
-        default="agy",
+        default="codex",
         choices=["agy", "codex", "claude", "ollama", "llamafile", "off"],
         help="Closer adapter: agy, codex, claude, ollama, llamafile, or off.",
     )

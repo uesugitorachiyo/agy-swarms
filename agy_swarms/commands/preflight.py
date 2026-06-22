@@ -73,8 +73,8 @@ def _write_mock_report(args: argparse.Namespace, graph) -> int:
             ScriptedAdapter(transcript),
             limit=Dims(tokens=100_000, usd=100.0),
             epoch=Epoch(epoch_seq=1, epoch_id="mock-preflight-run"),
-            reviewer="agy",
-            closer="agy",
+            reviewer="codex",
+            closer="codex",
         ).run()
     )
 
