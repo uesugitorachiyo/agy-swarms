@@ -4,6 +4,9 @@ All notable release-engineering milestones for this repository are recorded here
 
 ## Unreleased
 
+- Marked `agy-swarms` as frozen for active AO Foundry work and added an archive
+  handoff for reusable extraction targets.
+
 ## v0.5.6 - 2026-06-10
 
 This release exercises and packages the Release workflow's post-publish asset

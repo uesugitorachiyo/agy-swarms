@@ -6,6 +6,18 @@ It gives you deterministic scheduling, budget accounting, policy gates,
 checkpointed evidence, saved reports, preflight review bundles, and resumable
 inspection for local graph execution.
 
+## Archive Status
+
+`agy-swarms` is frozen for active AO Foundry work as of 2026-06-23 because the
+subscription path that motivated this standalone orchestrator is ending. Keep
+this repository as a reference implementation and avoid adding new product
+scope here.
+
+Reusable ideas for the AO spine are captured in
+[docs/archive-handoff.md](docs/archive-handoff.md). New execution work should
+move through `ao-foundry`, `ao-forge`, `ao2`, `ao2-control-plane`, and
+`ao-covenant` instead of depending on `agy-swarms`.
+
 The project is designed for operators who want to run parallel agent-shaped
 workflows without making the runtime itself an opaque agent. Models and CLIs can
 sit behind adapters; graph validation, scheduling, command review, reporting,
