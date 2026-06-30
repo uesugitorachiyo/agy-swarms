@@ -1,6 +1,6 @@
 ---
 name: agy-swarms
-description: "Decompose, orchestrate, and execute complex coding and analysis tasks using parallel Gemini 3.5 Flash worker swarms."
+description: "Decompose, orchestrate, and execute complex coding and analysis tasks using Codex-routed worker swarms."
 ---
 
 # agy-swarms Skill
@@ -47,7 +47,8 @@ A task spec file is a simple JSON file specifying the high-level objective:
 {
   "task": "Decompose and execute the migration of database models to v2",
   "model_pins": {
-    "default": "gemini-3.5-flash"
+    "default": "gpt-5.3-codex-spark",
+    "escalate": "gpt-5.5"
   }
 }
 ```
