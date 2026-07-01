@@ -34,7 +34,7 @@ def test_codex_adapter_invokes_codex_exec_and_parses_review_json(tmp_path: Path)
     cmd = calls[0]
     assert cmd[:4] == ["codex", "-a", "never", "exec"]
     assert cmd[cmd.index("-m") + 1] == "gpt-5.5"
-    assert 'model_reasoning_effort="low"' in cmd
+    assert 'model_reasoning_effort="high"' in cmd
     assert "--sandbox" in cmd
     assert cmd[cmd.index("--sandbox") + 1] == "read-only"
     assert "--ignore-user-config" in cmd
@@ -45,7 +45,7 @@ def test_codex_adapter_invokes_codex_exec_and_parses_review_json(tmp_path: Path)
     assert envelope.status == "succeeded"
     assert envelope.adapter == "codex"
     assert envelope.model == "gpt-5.5"
-    assert envelope.thinking_level == "low"
+    assert envelope.thinking_level == "high"
     assert envelope.artifact["route"]["adapter"] == "codex"
     assert envelope.artifact["review"]["verdict"] == "pass"
     assert envelope.concerns == ["minor naming concern"]
@@ -177,11 +177,18 @@ def test_codex_closer_schema_requires_verification_evidence(tmp_path: Path):
     assert envelope.artifact["review"]["verification_evidence"] == ["pytest passed"]
 
 
-def test_resolve_codex_model_config_defaults_to_gpt_5_5_low():
+def test_resolve_codex_model_config_defaults_reviewer_to_gpt_5_5_high():
     config = resolve_codex_model_config("reviewer", env={})
 
     assert config.model == "gpt-5.5"
-    assert config.reasoning_effort == "low"
+    assert config.reasoning_effort == "high"
+
+
+def test_resolve_codex_model_config_defaults_worker_to_spark_medium():
+    config = resolve_codex_model_config("worker", env={})
+
+    assert config.model == "gpt-5.3-codex-spark"
+    assert config.reasoning_effort == "medium"
 
 
 def test_resolve_codex_model_config_uses_high_effort_for_escalation():

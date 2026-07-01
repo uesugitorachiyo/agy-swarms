@@ -39,10 +39,10 @@ def main() -> int:
 
     if default_reviewer.transport != "codex-cli" or default_reviewer.auth != "cli-session":
         errors.append("default reviewer did not use Codex CLI session")
-    if default_reviewer.model != "gpt-5.5":
-        errors.append("default reviewer did not use gpt-5.5")
-    if default_closer.model != "gpt-5.5":
-        errors.append("default closer did not use gpt-5.5")
+    if default_reviewer.model != "gpt-5.5" or default_reviewer.reasoning_effort != "high":
+        errors.append("default reviewer did not use gpt-5.5 high")
+    if default_closer.model != "gpt-5.5" or default_closer.reasoning_effort != "high":
+        errors.append("default closer did not use gpt-5.5 high")
     if codex_reviewer.transport != "codex-cli" or codex_reviewer.auth != "cli-session":
         errors.append("codex reviewer did not use local CLI session")
     if codex_closer.transport != "codex-cli" or codex_closer.auth != "cli-session":

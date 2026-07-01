@@ -35,7 +35,7 @@ def load_task_spec(task_path: str | Path) -> TaskSpec:
         data = json.loads(content)
         if isinstance(data, dict):
             context_hash = data.get("context_hash", "")
-            model_pins = data.get("model_pins", {"default": "gemini-3.5-flash"})
+            model_pins = data.get("model_pins", {"default": "gpt-5.3-codex-spark"})
             return TaskSpec(
                 task=str(data.get("task", "")),
                 model_pins=model_pins if isinstance(model_pins, dict) else {},
@@ -43,7 +43,7 @@ def load_task_spec(task_path: str | Path) -> TaskSpec:
             )
     except json.JSONDecodeError:
         pass
-    return TaskSpec(task=content, model_pins={"default": "gemini-3.5-flash"})
+    return TaskSpec(task=content, model_pins={"default": "gpt-5.3-codex-spark"})
 
 
 class ScriptedCliPlanner:

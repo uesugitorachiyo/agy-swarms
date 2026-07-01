@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 
+from .codex_models import resolve_codex_role_model
+
 __all__ = [
     "ReviewAdapter",
     "ReviewRole",
@@ -45,6 +47,7 @@ class ReviewRoute:
     transport: str
     auth: str
     model: str
+    reasoning_effort: str
     read_only: bool
     temperature: int
     requires_passing_gates: bool
@@ -71,6 +74,7 @@ def route_review_role(
             transport="none",
             auth="none",
             model="none",
+            reasoning_effort="none",
             read_only=True,
             temperature=0,
             requires_passing_gates=True,
@@ -83,18 +87,21 @@ def route_review_role(
             transport="agy",
             auth="oauth",
             model="gemini-3.5-flash",
+            reasoning_effort="high",
             read_only=True,
             temperature=0,
             requires_passing_gates=True,
             reason="default_gemini_cli_review",
         )
     if review_adapter == ReviewAdapter.CODEX:
+        role_model = resolve_codex_role_model(review_role.value)
         return ReviewRoute(
             role=review_role,
             adapter=review_adapter,
             transport="codex-cli",
             auth="cli-session",
-            model="gpt-5.5",
+            model=role_model.model,
+            reasoning_effort=role_model.reasoning_effort,
             read_only=True,
             temperature=0,
             requires_passing_gates=True,
@@ -107,6 +114,7 @@ def route_review_role(
             transport="claude-code-cli",
             auth="cli-session",
             model="gpt-5.5-high",
+            reasoning_effort="high",
             read_only=True,
             temperature=0,
             requires_passing_gates=True,
@@ -119,6 +127,7 @@ def route_review_role(
             transport="ollama-cli",
             auth="none",
             model="default",
+            reasoning_effort="local",
             read_only=True,
             temperature=0,
             requires_passing_gates=True,
@@ -131,6 +140,7 @@ def route_review_role(
             transport="llamafile-cli",
             auth="none",
             model="default",
+            reasoning_effort="local",
             read_only=True,
             temperature=0,
             requires_passing_gates=True,

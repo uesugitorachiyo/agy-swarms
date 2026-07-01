@@ -27,14 +27,27 @@ def _node(
     )
 
 
-def test_default_worker_stays_on_oauth_flash_high():
+def test_default_worker_uses_codex_spark_medium():
     decision = route_model_tier(_node())
 
-    assert decision.tier == ModelTier.FLASH_HIGH
-    assert decision.transport == "agy"
-    assert decision.auth == "oauth"
+    assert decision.tier == ModelTier.CODEX_SPARK
+    assert decision.transport == "codex-cli"
+    assert decision.auth == "cli-session"
+    assert decision.model == "gpt-5.3-codex-spark"
+    assert decision.reasoning_effort == "medium"
     assert decision.escalated is False
-    assert decision.reason == "default_flash_high"
+    assert decision.reason == "default_codex_spark"
+
+
+def test_authority_roles_use_gpt_5_5_high():
+    for role in ("planner", "reviewer", "evaluator", "closer"):
+        decision = route_model_tier(_node(role=role))
+        assert decision.tier == ModelTier.CODEX_HIGH
+        assert decision.transport == "codex-cli"
+        assert decision.auth == "cli-session"
+        assert decision.model == "gpt-5.5"
+        assert decision.reasoning_effort == "high"
+        assert decision.reason == "authority_role_codex_high"
 
 
 def test_fixture_expected_model_tiers_reproduce_at_100_percent():
@@ -48,7 +61,7 @@ def test_fixture_expected_model_tiers_reproduce_at_100_percent():
     assert result["matched"] == result["total"] == 3
     assert result["router_cases_sha_matches_lock"] is True
     assert all(case["matched"] for case in result["cases"])
-    assert {case["actual_model_tier"] for case in result["cases"]} == {"flash_high"}
+    assert {case["actual_model_tier"] for case in result["cases"]} == {"codex_spark"}
 
 
 def test_repeated_failure_escalates_to_pro_api_when_budget_allows():
@@ -58,9 +71,11 @@ def test_repeated_failure_escalates_to_pro_api_when_budget_allows():
         remaining_budget=Dims(tokens=1_000, usd=1.0),
     )
 
-    assert decision.tier == ModelTier.PRO
-    assert decision.transport == "gemini_api"
-    assert decision.auth == "api_key"
+    assert decision.tier == ModelTier.CODEX_HIGH
+    assert decision.transport == "codex-cli"
+    assert decision.auth == "cli-session"
+    assert decision.model == "gpt-5.5"
+    assert decision.reasoning_effort == "high"
     assert decision.escalated is True
     assert decision.budget_admitted is True
     assert decision.escalation_charge.tokens == 275
@@ -74,7 +89,9 @@ def test_high_value_flag_escalates_to_pro_api_when_budget_allows():
         remaining_budget=Dims(tokens=500, usd=1.0),
     )
 
-    assert decision.tier == ModelTier.PRO
+    assert decision.tier == ModelTier.CODEX_HIGH
+    assert decision.model == "gpt-5.5"
+    assert decision.reasoning_effort == "high"
     assert decision.escalated is True
     assert decision.evidence["trigger"] == "explicit_high_value"
 
@@ -86,8 +103,11 @@ def test_escalation_is_blocked_when_budget_does_not_allow_it():
         remaining_budget=Dims(tokens=499, usd=1.0),
     )
 
-    assert decision.tier == ModelTier.FLASH_HIGH
-    assert decision.transport == "agy"
+    assert decision.tier == ModelTier.CODEX_SPARK
+    assert decision.transport == "codex-cli"
+    assert decision.auth == "cli-session"
+    assert decision.model == "gpt-5.3-codex-spark"
+    assert decision.reasoning_effort == "medium"
     assert decision.escalated is False
     assert decision.budget_admitted is False
     assert decision.escalation_charge == Dims(tokens=500, usd=0.0)

@@ -56,6 +56,7 @@ def test_reviewer_defaults_to_codex():
     assert route.transport == "codex-cli"
     assert route.auth == "cli-session"
     assert route.model == "gpt-5.5"
+    assert route.reasoning_effort == "high"
     assert route.read_only is True
     assert route.temperature == 0
     assert route.reason == "user_selected_cli_review"
@@ -69,6 +70,7 @@ def test_closer_defaults_to_codex():
     assert route.transport == "codex-cli"
     assert route.auth == "cli-session"
     assert route.model == "gpt-5.5"
+    assert route.reasoning_effort == "high"
     assert route.read_only is True
     assert route.requires_passing_gates is True
 
@@ -80,6 +82,7 @@ def test_reviewer_can_use_codex_cli_when_user_selects_it():
     assert route.transport == "codex-cli"
     assert route.auth == "cli-session"
     assert route.model == "gpt-5.5"
+    assert route.reasoning_effort == "high"
     assert route.read_only is True
     assert route.reason == "user_selected_cli_review"
 

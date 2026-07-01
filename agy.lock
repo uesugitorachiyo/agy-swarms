@@ -1,14 +1,15 @@
 lockfile_version = 1
 
 [models.default]
-snapshot = "gemini-3.5-flash-05-2026"
-family = "Flash"
-thinking = "high"
+snapshot = "gpt-5.3-codex-spark"
+family = "Codex Spark"
+thinking = "medium"
 normative = true
 
 [models.escalate]
-snapshot = "gemini-3.1-pro-05-2026"
-family = "Pro"
+snapshot = "gpt-5.5"
+family = "Codex"
+thinking = "high"
 normative = true
 
 [prompt_hashes]
@@ -19,7 +20,7 @@ worker_prompt = "UNRECORDED"
 [benchmarks]
 reference_task_sha = "eb1d156ff62312214e9e4b0b133fc4baeacfee0ea82c11c265ec0008d4cd3621"
 judge_rubric_sha = "19ef49e402fd076f13b53b4aaed11b9817953ea4cb42532b37686fdca4897eb3"
-router_cases_sha = "cfda0d7e11948d3d47008f183a34734a9d56d27aadbfad52250103999104c923"
+router_cases_sha = "ac212e54567e4d6f5f8d0dca6c23923f371caf83b88f2d8d8468454049c749c2"
 phase5_benchmark_manifest_sha = "bb8d241281d0f539477a5602f89b1418333552f1d7eebf7ccb7eb30f5275f46f"
 
 [phase5_baselines]
@@ -29,12 +30,14 @@ opus_baseline_path = "benchmarks/opus-baseline.json"
 
 [adapters]
 agy = "1.0.3;sha256=dd6adb7cb21baf2181e123df8415970b62e0bf5d362bc85d332b6c4018945dc4"
+codex = "cli-session"
 gemini_api = "google-genai 2.7.0"
 scripted = "local"
 
 [auth]
-default = "agy_oauth"
+default = "codex_cli"
 api_key_default = false
+codex_cli = "local_codex_session"
 agy_oauth = "S4_PASS_N20_2026-05-30"
 
 [tools]

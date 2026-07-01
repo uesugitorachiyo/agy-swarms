@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+from ..codex_models import resolve_codex_role_model
 from ..types import ErrorClass, FailureClass, NodeSpec, ResultEnvelope
 
 Runner = Callable[[list[str]], subprocess.CompletedProcess[str]]
@@ -62,9 +63,8 @@ def resolve_codex_model_config(
         else None
     )
     if model is None:
-        model = source.get(f"AGY_CODEX_{role_prefix}_MODEL") or source.get("AGY_CODEX_MODEL")
-    if model is None:
-        model = "gpt-5.5"
+        role_model = resolve_codex_role_model(role, env=source)
+        model = source.get(f"AGY_CODEX_{role_prefix}_MODEL") or role_model.model
 
     effort = (
         source.get(f"AGY_CODEX_{role_prefix}_REASONING_EFFORT")
@@ -73,11 +73,12 @@ def resolve_codex_model_config(
         else None
     )
     if effort is None:
-        effort = source.get(f"AGY_CODEX_{role_prefix}_REASONING_EFFORT") or source.get(
-            "AGY_CODEX_REASONING_EFFORT"
+        role_model = resolve_codex_role_model(role, env=source)
+        effort = (
+            source.get(f"AGY_CODEX_{role_prefix}_REASONING_EFFORT")
+            or source.get("AGY_CODEX_REASONING_EFFORT")
+            or role_model.reasoning_effort
         )
-    if effort is None:
-        effort = "high" if escalated else "low"
     return CodexModelConfig(model=model, reasoning_effort=effort)
 
 

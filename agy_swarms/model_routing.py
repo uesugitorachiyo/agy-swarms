@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from .budget import Dims, est
+from .codex_models import resolve_codex_role_model
 from .types import Caps, NodeSpec
 
 __all__ = [
@@ -28,6 +29,8 @@ class ModelTier(StrEnum):
     FLASH_LITE = "flash_lite"
     FLASH_HIGH = "flash_high"
     PRO = "pro"
+    CODEX_SPARK = "codex_spark"
+    CODEX_HIGH = "codex_high"
 
 
 @dataclass(frozen=True)
@@ -38,6 +41,8 @@ class ModelRouteDecision:
     transport: str
     auth: str
     reason: str
+    model: str = ""
+    reasoning_effort: str = ""
     escalated: bool = False
     budget_admitted: bool = True
     escalation_charge: Dims = Dims()
@@ -59,16 +64,30 @@ def route_model_tier(
     repeated failure or explicit high-value work, and only when the caller supplies enough
     remaining budget for the node's caps-driven estimate.
     """
+    role_model = resolve_codex_role_model(node.role)
+    if role_model.profile == "codex_high":
+        return ModelRouteDecision(
+            tier=ModelTier.CODEX_HIGH,
+            transport="codex-cli",
+            auth="cli-session",
+            reason="authority_role_codex_high",
+            model=role_model.model,
+            reasoning_effort=role_model.reasoning_effort,
+        )
+
     trigger = _escalation_trigger(failed_attempts=failed_attempts, high_value=high_value)
     if trigger is not None:
         charge = Dims(tokens=est(node), usd=0.0)
         admitted = remaining_budget is not None and charge.fits_within(remaining_budget)
         if admitted:
+            strong = resolve_codex_role_model("evaluator")
             return ModelRouteDecision(
-                tier=ModelTier.PRO,
-                transport="gemini_api",
-                auth="api_key",
+                tier=ModelTier.CODEX_HIGH,
+                transport="codex-cli",
+                auth="cli-session",
                 reason="budget_admitted_escalation",
+                model=strong.model,
+                reasoning_effort=strong.reasoning_effort,
                 escalated=True,
                 budget_admitted=True,
                 escalation_charge=charge,
@@ -79,10 +98,12 @@ def route_model_tier(
                 },
             )
         return ModelRouteDecision(
-            tier=ModelTier.FLASH_HIGH,
-            transport="agy",
-            auth="oauth",
+            tier=ModelTier.CODEX_SPARK,
+            transport="codex-cli",
+            auth="cli-session",
             reason="escalation_budget_blocked",
+            model=role_model.model,
+            reasoning_effort=role_model.reasoning_effort,
             escalated=False,
             budget_admitted=False,
             escalation_charge=charge,
@@ -96,17 +117,22 @@ def route_model_tier(
         )
 
     if allow_low_tier and _is_trivial(node):
+        low = resolve_codex_role_model(node.role, light_effort="low")
         return ModelRouteDecision(
-            tier=ModelTier.FLASH_LITE,
-            transport="agy",
-            auth="oauth",
+            tier=ModelTier.CODEX_SPARK,
+            transport="codex-cli",
+            auth="cli-session",
             reason="trivial_low_tier",
+            model=low.model,
+            reasoning_effort=low.reasoning_effort,
         )
     return ModelRouteDecision(
-        tier=ModelTier.FLASH_HIGH,
-        transport="agy",
-        auth="oauth",
-        reason="default_flash_high",
+        tier=ModelTier.CODEX_SPARK,
+        transport="codex-cli",
+        auth="cli-session",
+        reason="default_codex_spark",
+        model=role_model.model,
+        reasoning_effort=role_model.reasoning_effort,
     )
 
 
@@ -140,6 +166,8 @@ def run_model_router_fixture(
                 "transport": decision.transport,
                 "auth": decision.auth,
                 "reason": decision.reason,
+                "model": decision.model,
+                "reasoning_effort": decision.reasoning_effort,
                 "escalated": decision.escalated,
             }
         )

@@ -2,11 +2,11 @@
 # These are provisional Phase-0 pins. Measured values and GO/NO-GO outcomes live in phase0-results.md.
 
 [runtime]
-default_stateless_transport = "agy"
-default_agentic_transport = "agy"
-auth_default = "oauth"
-model_default = "gemini-3.5-flash"
-thinking_level_default = "high"
+default_stateless_transport = "codex-cli"
+default_agentic_transport = "codex-cli"
+auth_default = "cli-session"
+model_default = "gpt-5.3-codex-spark"
+thinking_level_default = "medium"
 
 [phase0_budget]
 usd_cap = 500.0
